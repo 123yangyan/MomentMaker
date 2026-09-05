@@ -4,13 +4,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from config import FILES_DIR, MOCK_DIR
-from database import Base, engine, migrate_database
+from config import CORS_ORIGINS, FILES_DIR, MOCK_DIR
+from database import Base, engine, migrate_database, recover_stuck_tasks
 from routers import task, upload, works
 
 # MVP 阶段直接自动建表；正式生产环境应改用 Alembic 数据库迁移。
 Base.metadata.create_all(bind=engine)
 migrate_database()
+recover_stuck_tasks()
 
 app = FastAPI(
     title="MomentMaker API",
@@ -21,7 +22,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     # 本地联调地址；部署后通过环境变量配置正式前端域名。
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

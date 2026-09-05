@@ -14,8 +14,8 @@ class ApiResponse(BaseModel):
 
 
 class TaskStartRequest(BaseModel):
-    # Seedream 最终需要 4 张参考图，因此任务至少上传 4 张图片。
-    file_ids: list[str] = Field(min_length=4, max_length=20)
+    # 上传 1～20 张；GLM 全量评分后自动选择最高 1～4 张用于生图。
+    file_ids: list[str] = Field(min_length=1, max_length=20)
     template: TemplateType
     # 当前前端没有单独的风格控件，默认使用二次元；保留字段方便后续扩展。
     style: StyleType = "anime"

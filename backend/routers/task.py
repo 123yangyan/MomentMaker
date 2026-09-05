@@ -1,4 +1,4 @@
-"""图片评分、选四张和 Seedream 生图任务接口。"""
+"""图片评分、自动选 1～4 张和 Seedream 生图任务接口。"""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import json
 import traceback
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
@@ -13,12 +14,36 @@ from sqlalchemy.orm import Session
 from ai.poster_generation import generate_poster
 from ai.prompt_builder import PROMPT_VERSION, build_poster_prompt
 from ai.vl_scoring import ProviderError, score_image
-from config import ARK_IMAGE_MODEL, RESULTS_DIR, VL_MODEL
+from config import (
+    ARK_IMAGE_MODEL,
+    MAX_REFERENCE_IMAGES,
+    RESULTS_DIR,
+    UPLOAD_DIR,
+    VL_MODEL,
+)
 from database import SessionLocal, get_db
 from models import ApiCallLog, FileRecord, ImageScore, Task, TaskEvent
 from schemas import TaskStartRequest
 
 router = APIRouter(tags=["生成任务"])
+
+
+# 只把这些短句返回给浏览器；内部诊断写 internal_error 和日志。
+USER_ERROR_MESSAGES = {
+    "missing_api_key": "生成服务暂时不可用，请稍后再试",
+    "insufficient_scores": "没有成功识别的人物照片，请换几张更清晰的正面照重试",
+    "http_error": "模型服务暂时繁忙，请稍后重试",
+    "request_failed": "模型服务暂时繁忙，请稍后重试",
+    "empty_result": "海报生成没有返回图片，请重新提交",
+    "invalid_response": "模型返回异常，请重新提交",
+    "server_restarted": "服务刚重启，请重新提交这次创作",
+    "internal_error": "任务处理失败，请稍后重试",
+    "invalid_material": "请选择一种物料类型后再生成",
+}
+
+
+def _user_error(code: str, fallback: str) -> str:
+    return USER_ERROR_MESSAGES.get(code, fallback)
 
 
 class WorkflowError(RuntimeError):
@@ -83,6 +108,29 @@ def _save_api_log(
             usage_json=json.dumps(result.get("usage") or {}, ensure_ascii=False),
             error_message=str(error)[:500] if error else None,
         )
+    )
+
+
+def _preview_url_for_record(record: FileRecord) -> str:
+    """把数据库中的本地路径转成前端可直接访问的相对 URL。"""
+    stored = Path(record.stored_path)
+    if stored.parent == UPLOAD_DIR:
+        return f"/files/uploads/{stored.name}"
+    return f"/files/uploads/{stored.name}"
+
+
+def _rank_successful_scores(successful: list[ImageScore]) -> list[ImageScore]:
+    """分数相同时依次看人脸、身份、清晰度，最后保持较早上传的图片优先。"""
+    return sorted(
+        successful,
+        key=lambda row: (
+            row.overall or 0,
+            row.face_clarity or 0,
+            row.identity_score or 0,
+            row.sharpness or 0,
+            -row.upload_order,
+        ),
+        reverse=True,
     )
 
 
@@ -187,27 +235,23 @@ def run_ai_task(task_id: str, file_ids: list[str]) -> None:
                 f"已完成 {index + 1}/{len(records)} 张图片评分",
             )
 
-        if len(successful) < 4:
+        if len(successful) < 1:
             code = (
                 "missing_api_key"
                 if failure_codes and set(failure_codes) == {"missing_api_key"}
                 else "insufficient_scores"
             )
-            raise WorkflowError(code, "成功评分的图片少于 4 张，无法生成海报")
+            raise WorkflowError(code, _user_error(code, "没有成功识别的人物照片，请换图重试"))
 
-        _set_state(db, task, "selecting", 60, "正在选择评分最高的 4 张图片")
-        # 分数相同时依次看人脸、身份、清晰度，最后保持较早上传的图片优先。
-        selected = sorted(
-            successful,
-            key=lambda row: (
-                row.overall or 0,
-                row.face_clarity or 0,
-                row.identity_score or 0,
-                row.sharpness or 0,
-                -row.upload_order,
-            ),
-            reverse=True,
-        )[:4]
+        selected_count = min(len(successful), MAX_REFERENCE_IMAGES)
+        _set_state(
+            db,
+            task,
+            "selecting",
+            60,
+            f"正在选择评分最高的 {selected_count} 张图片",
+        )
+        selected = _rank_successful_scores(successful)[:selected_count]
         selected_ids = [row.file_id for row in selected]
         task.selected_file_ids = json.dumps(selected_ids)
         db.commit()
@@ -225,6 +269,7 @@ def run_ai_task(task_id: str, file_ids: list[str]) -> None:
                 selected_materials[0],
                 style=task.style,
                 story_text=task.story_text,
+                reference_count=len(selected_ids),
             )
             poster_result = generate_poster(
                 selected_paths,
@@ -253,7 +298,7 @@ def run_ai_task(task_id: str, file_ids: list[str]) -> None:
                 error=exc,
             )
             db.commit()
-            raise WorkflowError(exc.code, str(exc)) from exc
+            raise WorkflowError(exc.code, _user_error(exc.code, "海报生成失败，请稍后重试")) from exc
 
         _set_state(db, task, "downloading", 95, "生成图已转存到本地")
         task.result_url = f"/files/results/{result_path.name}"
@@ -330,8 +375,8 @@ def start_task(
     """创建任务后立即返回 task_id，耗时模型调用在后台线程完成。"""
     session_id = _parse_session_id(x_session_id)
     unique_file_ids = list(dict.fromkeys(body.file_ids))
-    if len(unique_file_ids) < 4:
-        raise HTTPException(status_code=400, detail="至少需要 4 张不同的图片")
+    if len(unique_file_ids) < 1:
+        raise HTTPException(status_code=400, detail="至少需要 1 张不同的图片")
 
     records = db.query(FileRecord).filter(FileRecord.id.in_(unique_file_ids)).all()
     records_by_id = {record.id: record for record in records}
@@ -378,6 +423,46 @@ def start_task(
     }
 
 
+@router.get("/task/mine")
+def list_my_tasks(
+    x_session_id: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """按匿名会话返回本机创建的任务列表，供「我的」页面使用。"""
+    session_id = _parse_session_id(x_session_id)
+    tasks = (
+        db.query(Task)
+        .filter(Task.session_id == session_id)
+        .order_by(Task.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return {
+        "code": 200,
+        "message": "success",
+        "data": {
+            "items": [
+                {
+                    "task_id": task.id,
+                    "work_title": task.work_title or "未命名作品",
+                    "status": task.status,
+                    "progress": task.progress,
+                    "template": task.template,
+                    "style": task.style,
+                    "material": json.loads(task.material or "[]"),
+                    "result_url": task.result_url,
+                    "error_message": task.error_message,
+                    "created_at": task.created_at.isoformat(),
+                    "completed_at": task.completed_at.isoformat()
+                    if task.completed_at
+                    else None,
+                }
+                for task in tasks
+            ]
+        },
+    }
+
+
 @router.get("/task/{task_id}/status")
 def get_task_status(
     task_id: str,
@@ -398,21 +483,41 @@ def get_task_status(
         .order_by(ImageScore.upload_order)
         .all()
     )
+    failed_count = (
+        db.query(ImageScore)
+        .filter(ImageScore.task_id == task.id, ImageScore.status == "failed")
+        .count()
+    )
     selected_file_ids = json.loads(task.selected_file_ids or "[]")
     selected_ids = set(selected_file_ids)
+    file_records = {
+        row.id: row
+        for row in db.query(FileRecord)
+        .filter(FileRecord.id.in_([score.file_id for score in scores]))
+        .all()
+    }
     return {
         "code": 200,
         "message": "success",
         "data": {
             "task_id": task.id,
+            "work_title": task.work_title,
+            "template": task.template,
+            "style": task.style,
+            "material": json.loads(task.material or "[]"),
             "status": task.status,
             "progress": task.progress,
             "completed_images": len(scores),
+            "failed_images": failed_count,
             "total_images": len(json.loads(task.file_ids)),
             "selected_file_ids": selected_file_ids,
+            "selected_count": len(selected_file_ids),
             "scores": [
                 {
                     "file_id": row.file_id,
+                    "preview_url": _preview_url_for_record(file_records[row.file_id])
+                    if row.file_id in file_records
+                    else None,
                     "overall": row.overall,
                     "face_clarity": row.face_clarity,
                     "identity": row.identity_score,

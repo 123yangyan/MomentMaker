@@ -1,6 +1,7 @@
 import json
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from config import MOCK_DIR
@@ -9,6 +10,13 @@ from models import Task, Work
 from schemas import PublishWorkRequest
 
 router = APIRouter(tags=["广场作品"])
+
+
+def _parse_session_id(value: str) -> str:
+    try:
+        return str(uuid.UUID(value))
+    except (ValueError, AttributeError) as exc:
+        raise HTTPException(status_code=400, detail="X-Session-Id 必须是有效 UUID") from exc
 
 
 @router.get("/works")
@@ -56,9 +64,47 @@ def get_works(
     }
 
 
+@router.get("/works/mine")
+def list_my_works(
+    x_session_id: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """按匿名会话返回本机发布的作品。"""
+    session_id = _parse_session_id(x_session_id)
+    works = (
+        db.query(Work)
+        .filter(Work.session_id == session_id)
+        .order_by(Work.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return {
+        "code": 200,
+        "message": "success",
+        "data": {
+            "items": [
+                {
+                    "work_id": work.id,
+                    "task_id": work.task_id,
+                    "title": work.title,
+                    "cover_url": work.cover_url,
+                    "template": work.template,
+                    "style": work.style,
+                    "material": json.loads(work.material),
+                    "nickname": work.nickname,
+                    "likes": work.likes,
+                    "created_at": work.created_at.isoformat(),
+                }
+                for work in works
+            ]
+        },
+    }
+
+
 @router.post("/works")
 def publish_work(
     body: PublishWorkRequest,
+    x_session_id: str = Header(...),
     demo: bool = False,
     db: Session = Depends(get_db),
 ):
@@ -74,11 +120,20 @@ def publish_work(
             },
         }
 
+    session_id = _parse_session_id(x_session_id)
     task = db.get(Task, body.task_id)
     if task is None or task.status != "succeeded" or not task.result_url:
         raise HTTPException(status_code=400, detail="任务不存在或尚未完成")
+    if task.session_id != session_id:
+        raise HTTPException(status_code=403, detail="不能发布其他匿名会话的任务")
+
+    existing = db.query(Work).filter(Work.task_id == body.task_id).first()
+    if existing is not None:
+        raise HTTPException(status_code=400, detail="该任务已经发布过作品")
 
     work = Work(
+        task_id=body.task_id,
+        session_id=session_id,
         title=task.work_title or "未命名作品",
         cover_url=task.result_url,
         result_urls=json.dumps([task.result_url]),
@@ -95,7 +150,6 @@ def publish_work(
         "message": "发布成功",
         "data": {
             "work_id": work.id,
-            # 返回相对路径，前端可自动拼接当前域名。
             "share_url": f"/?work={work.id}",
             "cover_url": work.cover_url,
         },

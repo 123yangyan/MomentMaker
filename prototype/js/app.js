@@ -29,6 +29,9 @@ function bindSaveDraftBtn(btn, step, getExtra) {
 
 const DEFAULT_WORK_NAME = '用户ABCD';
 const WORK_NAME_KEY = 'momentmaker_work_name';
+const TEMPLATE_NAMES = { comic: '连环画', map: '故事地图', album: '记录册' };
+const MATERIAL_NAMES = { keychain: '钥匙扣', badge: '吧唧', postcard: '明信片' };
+const STYLE_NAMES = { anime: '二次元', cyber: '赛博', realistic: '写实' };
 
 function getWorkName() {
   try {
@@ -106,51 +109,46 @@ function runProgressBar(fillEl, duration = 2000, onComplete) {
   }
 }
 
-// 将刚生成的作品放到广场首位，形成完整的“开始创作 → 返回广场”体验
-function renderLatestCreatedWork() {
+// 真实联调后广场作品由 loadWorksFromApi 渲染
+function renderLatestCreatedWork() {}
+
+async function loadWorksFromApi() {
   const worksGrid = document.getElementById('worksGrid');
-  if (!worksGrid) return;
+  if (!worksGrid || !window.MomentMakerApi) return;
 
-  let work;
+  worksGrid.innerHTML = '<p class="works-empty">正在加载广场作品...</p>';
   try {
-    work = JSON.parse(localStorage.getItem('momentmaker_latest_work'));
-  } catch (error) {
-    return;
-  }
-  if (!work) return;
+    const data = await window.MomentMakerApi.fetchWorks(1);
+    const items = data.items || [];
+    if (!items.length) {
+      worksGrid.innerHTML = '<p class="works-empty">广场还没有作品，快去创作第一张吧</p>';
+      return;
+    }
 
-  const materialNames = {
-    keychain: '钥匙扣',
-    badge: '吧唧',
-    postcard: '明信片'
-  };
-
-  const card = document.createElement('div');
-  card.className = 'work-card';
-  card.innerHTML = `
-    <div class="work-card-img wf-photo ratio-medium">
-      <img alt="刚生成的作品" loading="eager">
-    </div>
-    <div class="work-card-info">
-      <div class="work-card-name"></div>
-      <div class="work-card-author-row">
-        <span class="work-card-author"></span>
-        <span class="work-card-meta">♡ 0</span>
+    worksGrid.innerHTML = items.map((work) => `
+      <div class="work-card" data-work-id="${work.work_id}">
+        <div class="work-card-img wf-photo ratio-medium">
+          <img src="${window.MomentMakerApi.fileUrl(work.cover_url)}" alt="${work.title}" loading="lazy">
+        </div>
+        <div class="work-card-info">
+          <div class="work-card-name">${work.title}</div>
+          <div class="work-card-author-row">
+            <span class="work-card-author">${work.nickname || '匿名用户'}</span>
+            <span class="work-card-meta">♡ ${work.likes || 0}</span>
+          </div>
+        </div>
       </div>
-    </div>
-  `;
-
-  card.querySelector('img').src = work.image;
-  card.querySelector('.work-card-name').textContent = work.name || DEFAULT_WORK_NAME;
-  card.querySelector('.work-card-author').textContent =
-    `刚刚生成 · ${materialNames[work.material] || '创意物料'}`;
-  worksGrid.prepend(card);
+    `).join('');
+  } catch (error) {
+    worksGrid.innerHTML = `<p class="works-empty">${error.message || '加载广场失败'}</p>`;
+  }
 }
 
-// Lightbox 控制（P1 广场页）
+// Lightbox 控制（P1 广场页）— 事件委托，支持动态卡片
 function initLightbox() {
   const lightbox = document.getElementById('lightbox');
-  if (!lightbox) return;
+  const worksGrid = document.getElementById('worksGrid');
+  if (!lightbox || !worksGrid) return;
 
   const closeBtn = lightbox.querySelector('.lightbox-close');
   const mainImg = document.getElementById('lightboxImg') || lightbox.querySelector('.lightbox-main img');
@@ -161,6 +159,7 @@ function initLightbox() {
 
   let liked = false;
   let likeCount = 0;
+  let currentWorkId = null;
 
   const updateLikeUI = () => {
     if (likeCountEl) likeCountEl.textContent = String(likeCount);
@@ -168,37 +167,53 @@ function initLightbox() {
     if (likeIcon) likeIcon.textContent = liked ? '♥' : '♡';
   };
 
-  document.querySelectorAll('.work-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const img = card.querySelector('.work-card-img img');
-      const name = card.querySelector('.work-card-name')?.textContent || '未命名作品';
-      const meta = card.querySelector('.work-card-meta')?.textContent || '';
-      const likeMatch = meta.match(/(\d+)/);
-      likeCount = likeMatch ? parseInt(likeMatch[1], 10) : 0;
-      liked = false;
+  worksGrid.addEventListener('click', (event) => {
+    const card = event.target.closest('.work-card');
+    if (!card) return;
 
-      if (mainImg) {
-        if (img) {
-          mainImg.src = img.src;
-          mainImg.style.display = 'block';
-        } else {
-          mainImg.removeAttribute('src');
-          mainImg.style.display = 'none';
-        }
+    const img = card.querySelector('.work-card-img img');
+    const name = card.querySelector('.work-card-name')?.textContent || '未命名作品';
+    const meta = card.querySelector('.work-card-meta')?.textContent || '';
+    const likeMatch = meta.match(/(\d+)/);
+    likeCount = likeMatch ? parseInt(likeMatch[1], 10) : 0;
+    liked = false;
+    currentWorkId = card.dataset.workId || null;
+
+    if (mainImg) {
+      if (img?.src) {
+        mainImg.src = img.src;
+        mainImg.style.display = 'block';
+      } else {
+        mainImg.removeAttribute('src');
+        mainImg.style.display = 'none';
       }
+    }
 
-      if (titleEl) titleEl.textContent = name;
-      updateLikeUI();
-      lightbox.classList.add('active');
-      document.body.style.overflow = 'hidden';
-    });
+    if (titleEl) titleEl.textContent = name;
+    updateLikeUI();
+    lightbox.classList.add('active');
+    document.body.style.overflow = 'hidden';
   });
 
-  likeBtn?.addEventListener('click', (e) => {
+  likeBtn?.addEventListener('click', async (e) => {
     e.stopPropagation();
-    liked = !liked;
-    likeCount += liked ? 1 : -1;
-    updateLikeUI();
+    if (!currentWorkId || !window.MomentMakerApi) {
+      liked = !liked;
+      likeCount += liked ? 1 : -1;
+      updateLikeUI();
+      return;
+    }
+    try {
+      const result = await window.MomentMakerApi.likeWork(currentWorkId);
+      likeCount = result.likes;
+      liked = true;
+      updateLikeUI();
+      const card = worksGrid.querySelector(`.work-card[data-work-id="${currentWorkId}"]`);
+      const metaEl = card?.querySelector('.work-card-meta');
+      if (metaEl) metaEl.textContent = `♡ ${likeCount}`;
+    } catch (error) {
+      showToast(error.message || '点赞失败');
+    }
   });
 
   const close = () => {
@@ -212,7 +227,7 @@ function initLightbox() {
   });
 }
 
-// 上传页交互（P2）
+// 上传页交互（P2）— 上传图片、创建后台任务，成功后倒计时回广场
 function initUploadPage() {
   const zone = document.getElementById('uploadZone');
   const input = document.getElementById('fileInput');
@@ -220,15 +235,29 @@ function initUploadPage() {
   const previewGrid = document.getElementById('previewGrid');
   const nextBtn = document.getElementById('nextBtn');
   const saveDraftBtn = document.getElementById('saveDraftBtn');
-  const demoLink = document.getElementById('demoLink');
   const loadingOverlay = document.getElementById('uploadLoading');
+  const loadingPanel = document.getElementById('loadingPanel');
+  const successPanel = document.getElementById('successPanel');
+  const loadingSpinner = document.getElementById('loadingSpinner');
+  const loadingText = document.getElementById('loadingText');
+  const loadingSub = document.getElementById('loadingSub');
+  const progressFill = document.getElementById('progressFill');
+  const successSub = document.getElementById('successSub');
+  const successCountdown = document.getElementById('successCountdown');
+  const goSquareBtn = document.getElementById('goSquareBtn');
   const templateChoices = document.querySelectorAll('#uploadTemplateList .square-template-item');
   const materialChoices = document.querySelectorAll('#materialChoiceList .material-choice-card');
 
-  if (!zone) return;
+  if (!zone || !window.MomentMakerApi) return;
+
+  const MIN_UPLOAD_MS = 1200;
+  const COUNTDOWN_SECONDS = 3;
 
   let files = [];
-  // 广场页通过 URL 参数携带模板，例如 upload.html?template=map
+  let isSubmitting = false;
+  let progressTimer = null;
+  let redirectTimer = null;
+
   const templateFromSquare = new URLSearchParams(window.location.search).get('template');
   const availableTemplates = ['comic', 'map', 'album'];
   let selectedTemplate = availableTemplates.includes(templateFromSquare)
@@ -236,12 +265,10 @@ function initUploadPage() {
     : 'comic';
   let selectedMaterial = 'keychain';
 
-  // 根据广场页传入的模板值，恢复对应卡片的默认选中状态
-  templateChoices.forEach(choice => {
+  templateChoices.forEach((choice) => {
     choice.classList.toggle('selected', choice.dataset.template === selectedTemplate);
   });
 
-  // 将当前选择暂存起来，后续编辑页或接口可以直接读取
   const saveCreationChoices = () => {
     try {
       sessionStorage.setItem('momentmaker_creation_choices', JSON.stringify({
@@ -249,38 +276,22 @@ function initUploadPage() {
         material: selectedMaterial
       }));
     } catch (error) {
-      // 原型在禁用浏览器存储时仍可继续完成页面交互
+      // ignore
     }
   };
 
-  // 原型暂未接入真实生成接口，先保存一条生成结果供广场页展示
-  const saveCreatedWork = () => {
-    const work = {
-      name: setWorkName(document.getElementById('workNameInput')?.value),
-      template: selectedTemplate,
-      material: selectedMaterial,
-      image: `https://picsum.photos/seed/mm-created-${Date.now()}/300/380`
-    };
-    try {
-      localStorage.setItem('momentmaker_latest_work', JSON.stringify(work));
-    } catch (error) {
-      // 浏览器存储不可用时，仍允许完成页面跳转
-    }
-  };
-
-  // 模板和物料均为单选：每次点击只保留一个橙色选中项
-  templateChoices.forEach(choice => {
+  templateChoices.forEach((choice) => {
     choice.addEventListener('click', () => {
-      templateChoices.forEach(item => item.classList.remove('selected'));
+      templateChoices.forEach((item) => item.classList.remove('selected'));
       choice.classList.add('selected');
       selectedTemplate = choice.dataset.template;
       saveCreationChoices();
     });
   });
 
-  materialChoices.forEach(choice => {
+  materialChoices.forEach((choice) => {
     choice.addEventListener('click', () => {
-      materialChoices.forEach(item => item.classList.remove('selected'));
+      materialChoices.forEach((item) => item.classList.remove('selected'));
       choice.classList.add('selected');
       selectedMaterial = choice.dataset.material;
       saveCreationChoices();
@@ -288,12 +299,68 @@ function initUploadPage() {
   });
 
   const updateNextBtn = () => {
-    if (nextBtn) nextBtn.disabled = files.length === 0 || !workNameInput?.value.trim();
+    if (nextBtn) nextBtn.disabled = files.length === 0 || !workNameInput?.value.trim() || isSubmitting;
+  };
+
+  const clearUploadTimers = () => {
+    if (progressTimer) clearInterval(progressTimer);
+    if (redirectTimer) clearInterval(redirectTimer);
+    progressTimer = null;
+    redirectTimer = null;
+  };
+
+  const goToSquare = () => {
+    clearUploadTimers();
+    window.location.href = 'index.html';
+  };
+
+  const showUploadProgress = () => {
+    loadingOverlay?.classList.remove('hidden');
+    loadingPanel?.classList.remove('hidden');
+    successPanel?.classList.add('hidden');
+    if (loadingSpinner) loadingSpinner.style.display = '';
+    if (loadingText) loadingText.textContent = '正在上传图片';
+    if (loadingSub) loadingSub.textContent = '请稍候，不要关闭页面';
+    if (progressFill) progressFill.style.width = '8%';
+  };
+
+  const animateUploadProgress = (startedAt) => {
+    if (progressTimer) clearInterval(progressTimer);
+    progressTimer = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const ratio = Math.min(elapsed / MIN_UPLOAD_MS, 1);
+      const progress = 8 + Math.round(ratio * 82);
+      if (progressFill) progressFill.style.width = `${progress}%`;
+    }, 50);
+  };
+
+  const showUploadSuccess = () => {
+    if (progressTimer) clearInterval(progressTimer);
+    progressTimer = null;
+    if (progressFill) progressFill.style.width = '100%';
+    if (loadingSpinner) loadingSpinner.style.display = 'none';
+    loadingPanel?.classList.add('hidden');
+    successPanel?.classList.remove('hidden');
+
+    let remaining = COUNTDOWN_SECONDS;
+    const refreshCountdown = () => {
+      if (successCountdown) successCountdown.textContent = String(remaining);
+      if (successSub) successSub.textContent = `${remaining} 秒后自动返回广场`;
+    };
+    refreshCountdown();
+
+    redirectTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        goToSquare();
+        return;
+      }
+      refreshCountdown();
+    }, 1000);
   };
 
   const renderPreviews = () => {
     if (!previewGrid) return;
-    // 预览区始终只展示一行，最多显示前 4 个素材
     const visibleFiles = files.slice(0, 4);
     previewGrid.innerHTML = visibleFiles.map((f, i) => `
       <div class="upload-preview-item">
@@ -308,10 +375,10 @@ function initUploadPage() {
       </div>
     `).join('');
 
-    previewGrid.querySelectorAll('.upload-preview-remove').forEach(btn => {
+    previewGrid.querySelectorAll('.upload-preview-remove').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const idx = parseInt(btn.dataset.index);
+        const idx = parseInt(btn.dataset.index, 10);
         if (files[idx]?.file) URL.revokeObjectURL(files[idx].url);
         files.splice(idx, 1);
         renderPreviews();
@@ -320,42 +387,23 @@ function initUploadPage() {
     });
   };
 
-  const addMockFiles = (count = 4) => {
-    for (let i = 0; i < count; i++) {
-      files.push({
-        url: `https://picsum.photos/seed/mm${i + 1}/200/200`,
-        name: `sample_${i + 1}.jpg`
-      });
-    }
-    renderPreviews();
-    updateNextBtn();
-  };
-
   zone.addEventListener('click', () => input?.click());
-
   zone.addEventListener('dragover', (e) => {
     e.preventDefault();
     zone.classList.add('dragover');
   });
-
   zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-
   zone.addEventListener('drop', (e) => {
     e.preventDefault();
     zone.classList.remove('dragover');
     handleFiles(e.dataTransfer.files);
   });
-
   input?.addEventListener('change', (e) => handleFiles(e.target.files));
 
   function handleFiles(fileList) {
-    Array.from(fileList).slice(0, 20 - files.length).forEach(file => {
+    Array.from(fileList).slice(0, 20 - files.length).forEach((file) => {
       if (file.type.startsWith('image/')) {
-        files.push({
-          file,
-          url: URL.createObjectURL(file),
-          name: file.name
-        });
+        files.push({ file, url: URL.createObjectURL(file), name: file.name });
       } else {
         showToast(`仅支持图片：${file.name}`);
       }
@@ -366,60 +414,57 @@ function initUploadPage() {
 
   workNameInput?.addEventListener('input', updateNextBtn);
 
-  // 生成后端可直接接收的上传标签。文件本体不写入 Web Storage；这里只保存标签和任务参数。
-  const prepareUploadLabels = async () => {
-    const workName = workNameInput?.value.trim();
-    if (!workName) throw new Error('请填写作品名称');
-    if (!window.MomentMakerUploadLabels) throw new Error('上传标签模块加载失败');
-
-    const manifest = await window.MomentMakerUploadLabels.buildManifest(files.map(item => item.file));
-    const taskPayload = {
-      schema_version: '1.0',
-      upload_id: null,
-      file_ids: [],
-      work_name: workName,
-      template: selectedTemplate,
-      style: 'anime',
-      material: selectedMaterial
-    };
-
-    sessionStorage.setItem('momentmaker_upload_manifest', JSON.stringify(manifest));
-    sessionStorage.setItem('momentmaker_task_payload', JSON.stringify(taskPayload));
-    setWorkName(workName);
-  };
+  goSquareBtn?.addEventListener('click', goToSquare);
 
   nextBtn?.addEventListener('click', async () => {
-    if (files.length === 0) return;
-    const originalText = nextBtn.textContent;
-    nextBtn.disabled = true;
-    nextBtn.textContent = '正在校验图片...';
-
-    try {
-      await prepareUploadLabels();
-    } catch (error) {
-      showToast(error.message || '图片标签生成失败，请重试');
-      nextBtn.textContent = originalText;
-      updateNextBtn();
+    if (files.length === 0 || isSubmitting) return;
+    const workTitle = workNameInput?.value.trim();
+    if (!workTitle) {
+      showToast('请填写作品名称');
       return;
     }
 
-    nextBtn.textContent = originalText;
-    if (loadingOverlay) {
-      loadingOverlay.classList.remove('hidden');
-      const fill = loadingOverlay.querySelector('.progress-fill');
-      runProgressBar(fill, 1500, () => {
-        saveCreationChoices();
-        saveCreatedWork();
-        window.location.href = 'index.html';
+    isSubmitting = true;
+    updateNextBtn();
+    const originalText = nextBtn.textContent;
+    nextBtn.textContent = '正在上传...';
+
+    const startedAt = Date.now();
+    showUploadProgress();
+    animateUploadProgress(startedAt);
+
+    try {
+      const uploadData = await window.MomentMakerApi.uploadFiles(files.map((item) => item.file));
+      if (loadingSub) loadingSub.textContent = '正在提交创作任务...';
+
+      const taskData = await window.MomentMakerApi.startTask({
+        file_ids: uploadData.file_ids,
+        template: selectedTemplate,
+        style: 'anime',
+        material: selectedMaterial,
+        work_title: workTitle
       });
-    } else {
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_UPLOAD_MS) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_UPLOAD_MS - elapsed));
+      }
+
+      sessionStorage.setItem('momentmaker_active_task_id', taskData.task_id);
+      setWorkName(workTitle);
       saveCreationChoices();
-      saveCreatedWork();
-      window.location.href = 'index.html';
+      showUploadSuccess();
+    } catch (error) {
+      clearUploadTimers();
+      loadingOverlay?.classList.add('hidden');
+      showToast(error.message || '上传失败，请重试');
+    } finally {
+      isSubmitting = false;
+      nextBtn.textContent = originalText;
+      updateNextBtn();
     }
   });
 
-  // 保存草稿：补充描述已移除，现在需要至少上传一个素材
   saveDraftBtn?.addEventListener('click', () => {
     if (files.length === 0) {
       showToast('请先上传素材');
@@ -430,7 +475,6 @@ function initUploadPage() {
       workNameInput?.focus();
       return;
     }
-
     saveDraftAndRedirect(1, {
       workName: setWorkName(workNameInput.value),
       fileCount: files.length,
@@ -439,26 +483,7 @@ function initUploadPage() {
     });
   });
 
-  demoLink?.addEventListener('click', (e) => {
-    e.preventDefault();
-    addMockFiles(6);
-    showToast('已载入样例素材');
-    setTimeout(() => {
-      if (loadingOverlay) {
-        loadingOverlay.classList.remove('hidden');
-        const fill = loadingOverlay.querySelector('.progress-fill');
-        runProgressBar(fill, 500, () => {
-          saveCreationChoices();
-          saveCreatedWork();
-          window.location.href = 'index.html';
-        });
-      } else {
-        saveCreationChoices();
-        saveCreatedWork();
-        window.location.href = 'index.html';
-      }
-    }, 600);
-  });
+  window.addEventListener('pagehide', clearUploadTimers);
 
   saveCreationChoices();
   initWorkNameEditor();
@@ -544,24 +569,26 @@ function initTemplatePage() {
   updatePreview();
 }
 
-// 我的页面（P6）
-function initProfilePage() {
+// 我的页面（P6）— 从后端加载本机会话的任务与作品
+async function initProfilePage() {
   const tabs = document.querySelectorAll('.profile-tab');
   const panelPublished = document.getElementById('panel-published');
   const panelDraft = document.getElementById('panel-draft');
   const demoEntry = document.getElementById('demoEntry');
+  const statPublished = document.querySelector('.profile-stat:nth-child(1) .profile-stat-num');
+  const statDraft = document.querySelector('.profile-stat:nth-child(2) .profile-stat-num');
+  const statLikes = document.querySelector('.profile-stat:nth-child(3) .profile-stat-num');
 
   const switchPanel = (panel) => {
-    tabs.forEach(t => t.classList.toggle('active', t.dataset.panel === panel));
+    tabs.forEach((t) => t.classList.toggle('active', t.dataset.panel === panel));
     if (panelPublished) panelPublished.style.display = panel === 'published' ? 'block' : 'none';
     if (panelDraft) panelDraft.style.display = panel === 'draft' ? 'block' : 'none';
   };
 
-  tabs.forEach(tab => {
+  tabs.forEach((tab) => {
     tab.addEventListener('click', () => switchPanel(tab.dataset.panel));
   });
 
-  // 从上传页保存草稿跳转过来时，自动打开草稿 Tab
   if (window.location.hash === '#draft') {
     switchPanel('draft');
   }
@@ -569,6 +596,86 @@ function initProfilePage() {
   demoEntry?.addEventListener('click', () => {
     window.location.href = 'upload.html';
   });
+
+  const renderDrafts = () => {
+    if (!panelDraft) return;
+    let draft;
+    try {
+      draft = JSON.parse(localStorage.getItem('momentmaker_draft'));
+    } catch (error) {
+      draft = null;
+    }
+    if (!draft) {
+      panelDraft.innerHTML = '<p class="works-empty">暂无草稿</p>';
+      if (statDraft) statDraft.textContent = '0';
+      return;
+    }
+    if (statDraft) statDraft.textContent = '1';
+    panelDraft.innerHTML = `
+      <div class="profile-work-item">
+        <div class="profile-work-thumb">草稿</div>
+        <div class="profile-work-info">
+          <div class="profile-work-title">${draft.workName || '未命名草稿'}</div>
+          <div class="profile-work-meta">${TEMPLATE_NAMES[draft.template] || draft.template} · ${MATERIAL_NAMES[draft.material] || draft.material}</div>
+        </div>
+        <a href="upload.html" class="btn btn-sm">继续</a>
+      </div>
+    `;
+  };
+
+  const renderPublished = async () => {
+    if (!panelPublished || !window.MomentMakerApi) return;
+    panelPublished.innerHTML = '<p class="works-empty">正在加载已发布作品...</p>';
+    try {
+      const works = await window.MomentMakerApi.fetchMyWorks();
+      const tasks = await window.MomentMakerApi.fetchMyTasks();
+      const totalLikes = works.reduce((sum, item) => sum + (item.likes || 0), 0);
+      if (statPublished) statPublished.textContent = String(works.length);
+      if (statLikes) statLikes.textContent = String(totalLikes);
+
+      const succeededTasks = tasks.filter(
+        (task) => task.status === 'succeeded' && !works.some((work) => work.task_id === task.task_id)
+      );
+
+      if (!works.length && !succeededTasks.length) {
+        panelPublished.innerHTML = '<p class="works-empty">还没有作品，去上传页开始创作吧</p>';
+        return;
+      }
+
+      const workItems = works.map((work) => `
+        <div class="profile-work-item">
+          <div class="profile-work-thumb">
+            <img src="${window.MomentMakerApi.fileUrl(work.cover_url)}" alt="${work.title}">
+          </div>
+          <div class="profile-work-info">
+            <div class="profile-work-title">${work.title}</div>
+            <div class="profile-work-meta">${TEMPLATE_NAMES[work.template] || work.template} · 赞 ${work.likes || 0}</div>
+          </div>
+          <span class="profile-chevron">›</span>
+        </div>
+      `).join('');
+
+      const taskItems = succeededTasks.map((task) => `
+        <div class="profile-work-item">
+          <div class="profile-work-thumb">
+            <img src="${window.MomentMakerApi.fileUrl(task.result_url)}" alt="${task.work_title}">
+          </div>
+          <div class="profile-work-info">
+            <div class="profile-work-title">${task.work_title}</div>
+            <div class="profile-work-meta">已生成 · 待发布</div>
+          </div>
+          <a href="upload.html" class="btn btn-sm">查看</a>
+        </div>
+      `).join('');
+
+      panelPublished.innerHTML = workItems + taskItems;
+    } catch (error) {
+      panelPublished.innerHTML = `<p class="works-empty">${error.message || '加载失败'}</p>`;
+    }
+  };
+
+  renderDrafts();
+  await renderPublished();
 }
 
 // 顶部 Banner 轮播（广场页：海报 + 每位选手各一屏，5 秒自动切换）
@@ -637,11 +744,11 @@ function initKingkongCarousel() {
 }
 
 // 页面初始化入口
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initKingkongCarousel();
-  renderLatestCreatedWork();
   initLightbox();
+  await loadWorksFromApi();
   initUploadPage();
   initTemplatePage();
-  initProfilePage();
+  await initProfilePage();
 });

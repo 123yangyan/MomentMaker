@@ -140,8 +140,11 @@ class Work(Base):
     """发布到广场的作品。"""
 
     __tablename__ = "works"
+    __table_args__ = (UniqueConstraint("task_id", name="uq_work_task_id"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    task_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    session_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     title: Mapped[str] = mapped_column(String(30), default="未命名作品")
     cover_url: Mapped[str] = mapped_column(String(500))
     result_urls: Mapped[str] = mapped_column(Text)

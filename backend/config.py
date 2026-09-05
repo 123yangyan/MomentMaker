@@ -17,7 +17,17 @@ MOCK_DIR = BASE_DIR / "mock"
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
 MAX_VIDEO_SIZE = 100 * 1024 * 1024
 MAX_FILES = 20
+MIN_REFERENCE_IMAGES = 1
+MAX_REFERENCE_IMAGES = 4
 TASK_TIMEOUT_SECONDS = 60
+
+# 本地联调默认放行 5173；部署时可通过 CORS_ORIGINS 追加正式前端域名。
+_default_cors = "http://localhost:5173,http://127.0.0.1:5173"
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ORIGINS", _default_cors).split(",")
+    if origin.strip()
+]
 
 # 两个第三方模型都只在后端读取密钥，绝不能把密钥返回给前端。
 SILICONFLOW_API_KEY = os.environ.get("SILICONFLOW_API_KEY", "").strip()

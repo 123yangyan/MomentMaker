@@ -41,4 +41,19 @@ python -m unittest discover -s tests -v
 
 `pending → scoring → selecting → generating → downloading → succeeded`
 
+- 上传 1～20 张图片均可创建任务
+- 成功评分至少 1 张即可继续，自动选择最高 1～4 张参考图
+- 无 P4 确认页，评分完成后直接生图
+
 任何阶段出错都会进入 `failed`，并通过任务状态接口返回适合用户阅读的错误信息。
+
+## 前端联调
+
+原型页请用本地 HTTP 服务在 5173 端口打开：
+
+```powershell
+cd prototype
+python -m http.server 5173
+```
+
+前端 API 基址默认为 `http://127.0.0.1:8000`，详见 `prototype/INTEGRATION.md`。

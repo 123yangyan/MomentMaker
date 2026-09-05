@@ -73,7 +73,7 @@
       </div>
     </section>
 
-    <button type="button" class="demo-link" id="demoLink">使用样例素材体验 →</button>
+    <button type="button" class="btn btn-outline hidden" id="demoLink">使用样例素材体验 →</button>
   </div>
 
   <div class="bottom-bar">
@@ -85,11 +85,36 @@
   </div>
 
   <div class="loading-overlay hidden" id="uploadLoading">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">AI 正在识别素材...</div>
-    <div class="loading-sub">正在分析画面与氛围</div>
-    <div class="progress-bar">
-      <div class="progress-fill"></div>
+    <div class="loading-panel" id="loadingPanel">
+      <div class="loading-spinner" id="loadingSpinner"></div>
+      <div class="loading-text" id="loadingText">正在上传图片</div>
+      <div class="loading-sub" id="loadingSub">请稍候，不要关闭页面</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <div class="success-panel hidden" id="successPanel">
+      <div class="upload-success-mark" aria-hidden="true">✓</div>
+      <h2 class="upload-success-title">上传成功</h2>
+      <p class="upload-success-sub" id="successSub">3 秒后自动返回广场</p>
+      <p class="upload-countdown" id="successCountdown">3</p>
+      <button type="button" class="btn btn-primary" id="goSquareBtn">立即返回广场</button>
+    </div>
+
+    <div class="result-panel hidden" id="resultPanel" aria-hidden="true">
+      <h2 class="result-title" id="resultTitle">生成完成</h2>
+      <div class="result-poster-wrap">
+        <img id="resultPoster" class="result-poster" alt="生成海报">
+      </div>
+      <div class="result-scores" id="resultScores"></div>
+      <p class="result-error hidden" id="resultError"></p>
+      <div class="result-actions">
+        <button type="button" class="btn btn-primary" id="publishBtn">发布到广场</button>
+        <a class="btn btn-outline" id="downloadBtn" download>下载海报</a>
+        <button type="button" class="btn btn-outline" id="backSquareBtn">返回广场</button>
+        <button type="button" class="btn btn-outline hidden" id="retryBtn">重新生成</button>
+      </div>
     </div>
   </div>
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-PROMPT_VERSION = "momentmaker-3x3-v2"
+PROMPT_VERSION = "momentmaker-3x3-v3"
 
 # 三套模板只决定画面的叙事布局，不允许前端直接覆盖这些核心规则。
 TEMPLATE_PROMPTS = {
@@ -44,11 +44,21 @@ STYLE_PROMPTS = {
     "realistic": "整体使用自然写实的商业插画风格，色彩真实且不过度磨皮。",
 }
 
-BASE_PROMPT = (
-    "根据四张参考图生成一张高清黑客松纪念主视觉。准确保留主要人物的五官、"
-    "发型、服装和身份特征，人物自然、清晰且不重复。画面主题积极、构图完整，"
-    "不要生成水印、品牌 Logo、乱码文字、多余肢体或畸形手指。"
-)
+def _reference_prompt(reference_count: int) -> str:
+    """根据实际参考图数量生成基础提示，避免只传 1～2 张时仍写“四张”。"""
+    if reference_count <= 0:
+        raise ValueError("参考图数量至少为 1")
+    if reference_count == 1:
+        return (
+            "根据 1 张参考图生成一张高清黑客松纪念主视觉。准确保留主要人物的五官、"
+            "发型、服装和身份特征，人物自然、清晰。画面主题积极、构图完整，"
+            "不要生成水印、品牌 Logo、乱码文字、多余肢体或畸形手指。"
+        )
+    return (
+        f"根据 {reference_count} 张参考图生成一张高清黑客松纪念主视觉。准确保留主要人物的五官、"
+        "发型、服装和身份特征，人物自然、清晰且不重复。画面主题积极、构图完整，"
+        "不要生成水印、品牌 Logo、乱码文字、多余肢体或畸形手指。"
+    )
 
 
 def _normalize_story_text(story_text: str | None) -> str:
@@ -65,6 +75,7 @@ def build_poster_prompt(
     *,
     style: str = "anime",
     story_text: str | None = None,
+    reference_count: int = 4,
 ) -> str:
     """把受控选项和用户主题描述组合成最终提示词。
 
@@ -77,9 +88,11 @@ def build_poster_prompt(
         raise ValueError(f"不支持的物料类型：{material}")
     if style not in STYLE_PROMPTS:
         raise ValueError(f"不支持的视觉风格：{style}")
+    if not 1 <= reference_count <= 4:
+        raise ValueError("参考图数量必须在 1～4 之间")
 
     sections = [
-        BASE_PROMPT,
+        _reference_prompt(reference_count),
         TEMPLATE_PROMPTS[template],
         STYLE_PROMPTS[style],
         MATERIAL_PROMPTS[material],

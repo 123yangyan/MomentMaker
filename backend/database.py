@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -67,14 +69,55 @@ def migrate_database() -> None:
 
     if "works" in inspector.get_table_names():
         work_columns = {column["name"] for column in inspector.get_columns("works")}
-        if "title" not in work_columns:
-            with engine.begin() as connection:
-                connection.execute(
-                    text(
-                        "ALTER TABLE works ADD COLUMN title VARCHAR(30) "
-                        "DEFAULT '未命名作品'"
+        work_additions = {
+            "title": "VARCHAR(30) DEFAULT '未命名作品'",
+            "task_id": "VARCHAR(36)",
+            "session_id": "VARCHAR(36)",
+        }
+        with engine.begin() as connection:
+            for name, sql_type in work_additions.items():
+                if name not in work_columns:
+                    connection.execute(
+                        text(f"ALTER TABLE works ADD COLUMN {name} {sql_type}")
                     )
+
+
+STUCK_TASK_STATUSES = (
+    "pending",
+    "scoring",
+    "selecting",
+    "generating",
+    "downloading",
+)
+
+
+def recover_stuck_tasks() -> int:
+    """服务重启后把遗留中间态任务标记为失败，避免前端无限轮询。"""
+    from models import Task, TaskEvent
+
+    db = SessionLocal()
+    recovered = 0
+    try:
+        tasks = db.query(Task).filter(Task.status.in_(STUCK_TASK_STATUSES)).all()
+        for task in tasks:
+            task.status = "failed"
+            task.error_code = "server_restarted"
+            task.error_message = "服务刚重启，请重新提交这次创作"
+            task.completed_at = datetime.now(UTC)
+            db.add(
+                TaskEvent(
+                    task_id=task.id,
+                    status="failed",
+                    progress=task.progress,
+                    message=task.error_message,
                 )
+            )
+            recovered += 1
+        if recovered:
+            db.commit()
+    finally:
+        db.close()
+    return recovered
 
 
 def get_db():

@@ -83,6 +83,41 @@ class AiServiceContractTest(unittest.TestCase):
             self.assertEqual(result["score"]["overall"], 8)
             self.assertEqual(result["request_id"], "glm-request")
 
+    def test_prompt_uses_reference_count(self) -> None:
+        prompt_one = build_poster_prompt("comic", "postcard", reference_count=1)
+        prompt_three = build_poster_prompt("comic", "postcard", reference_count=3)
+        self.assertIn("1 张参考图", prompt_one)
+        self.assertIn("3 张参考图", prompt_three)
+
+    def test_seedream_accepts_one_to_four_images(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            image_path = root / "input.jpg"
+            Image.new("RGB", (100, 100), "green").save(image_path)
+            output_path = root / "poster.jpg"
+
+            api_response = Mock(
+                status_code=200,
+                is_error=False,
+                headers={"x-request-id": "seedream-request"},
+            )
+            api_response.json.return_value = {
+                "model": "seedream-test",
+                "data": [{"url": "https://example.test/poster.jpg", "size": "2K"}],
+                "usage": {"generated_images": 1},
+            }
+            download_response = Mock(content=b"fake-jpeg-bytes")
+            download_response.raise_for_status.return_value = None
+
+            with (
+                patch("ai.poster_generation.httpx.post", return_value=api_response),
+                patch("ai.poster_generation.httpx.get", return_value=download_response),
+            ):
+                generate_poster([image_path], output_path, api_key="test-key", model="seedream-test")
+                generate_poster([image_path] * 3, output_path, api_key="test-key", model="seedream-test")
+
+            self.assertEqual(output_path.read_bytes(), b"fake-jpeg-bytes")
+
     def test_seedream_url_is_downloaded_to_local_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

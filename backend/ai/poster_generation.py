@@ -1,4 +1,4 @@
-"""调用火山方舟 Seedream，把评分最高的四张图片融合为海报。"""
+"""调用火山方舟 Seedream，把评分最高的 1～4 张图片融合为海报。"""
 
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ from config import (
     AI_REQUEST_TIMEOUT_SECONDS,
     ARK_API_KEY,
     ARK_IMAGE_MODEL,
+    MAX_REFERENCE_IMAGES,
+    MIN_REFERENCE_IMAGES,
 )
 
 API_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
@@ -53,8 +55,10 @@ def generate_poster(
     """同步生成并转存海报；成功时返回可落库的脱敏调用信息。"""
     if not api_key:
         raise ProviderError("服务端缺少 ARK_API_KEY", code="missing_api_key")
-    if len(image_paths) != 4:
-        raise ValueError("Seedream 必须接收恰好 4 张参考图片")
+    if not MIN_REFERENCE_IMAGES <= len(image_paths) <= MAX_REFERENCE_IMAGES:
+        raise ValueError(
+            f"Seedream 必须接收 {MIN_REFERENCE_IMAGES}～{MAX_REFERENCE_IMAGES} 张参考图片"
+        )
 
     payload = {
         "model": model,
