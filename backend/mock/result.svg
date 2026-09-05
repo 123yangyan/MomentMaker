@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#171b42"/><stop offset=".55" stop-color="#743fe8"/><stop offset="1" stop-color="#ff6dac"/></linearGradient></defs>
+  <rect width="900" height="1200" rx="54" fill="url(#g)"/>
+  <rect x="75" y="95" width="750" height="760" rx="36" fill="#fff" opacity=".92"/>
+  <circle cx="450" cy="420" r="230" fill="#ffd8eb"/>
+  <path d="M245 790V555c0-145 92-245 205-245s205 100 205 245v235z" fill="#6552dc"/>
+  <text x="450" y="980" text-anchor="middle" font-family="sans-serif" font-size="62" font-weight="700" fill="#fff">MY MOMENT</text>
+  <text x="450" y="1050" text-anchor="middle" font-family="sans-serif" font-size="34" fill="#fff">把故事变成记忆</text>
+</svg>

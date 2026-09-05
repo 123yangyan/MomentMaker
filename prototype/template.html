@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f3ec">
+  <title>MomentMaker - 选择模板</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page page--flow">
+    <div class="wf-badge">Wireframe · P3 风格模板选择页 · Tab 栏隐藏</div>
+
+    <nav class="topbar flow-titlebar">
+      <span class="topbar-title">选择风格模板</span>
+    </nav>
+
+    <p class="wf-section-label">组件 · 模板卡片 Radio Card</p>
+    <h2 class="section-title">选择模板类型</h2>
+    <div class="template-cards">
+      <div class="template-card selected" data-template="comic">
+        <div class="template-card-thumb wf-img-placeholder template-card-thumb-placeholder">
+          <span>预览</span>
+        </div>
+        <div class="template-card-info">
+          <h3>连环画</h3>
+          <p>多格漫画布局，适合漫展 Cosplay 记录</p>
+        </div>
+      </div>
+      <div class="template-card" data-template="map">
+        <div class="template-card-thumb wf-img-placeholder template-card-thumb-placeholder">
+          <span>预览</span>
+        </div>
+        <div class="template-card-info">
+          <h3>故事地图</h3>
+          <p>时间线/路线感，适合活动旅程回顾</p>
+        </div>
+      </div>
+      <div class="template-card" data-template="album">
+        <div class="template-card-thumb wf-img-placeholder template-card-thumb-placeholder">
+          <span>预览</span>
+        </div>
+        <div class="template-card-info">
+          <h3>记录册</h3>
+          <p>相册翻页风格，适合演唱会珍藏纪念</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="wf-section-label">组件 · 标签选择 Tag Group</p>
+    <h2 class="section-title">选择视觉风格</h2>
+    <div class="style-tags">
+      <span class="style-tag selected" data-style="anime">二次元</span>
+      <span class="style-tag" data-style="cyber">演唱会/赛博</span>
+      <span class="style-tag" data-style="realistic">普通写实</span>
+    </div>
+
+    <p class="wf-section-label">组件 · 图标按钮组 Icon Button Group</p>
+    <h2 class="section-title">实体物料形态</h2>
+    <div class="material-icons">
+      <div class="material-icon-btn selected">
+        <span class="icon">图标</span>
+        吧唧
+      </div>
+      <div class="material-icon-btn">
+        <span class="icon">图标</span>
+        钥匙扣
+      </div>
+      <div class="material-icon-btn">
+        <span class="icon">图标</span>
+        小票
+      </div>
+      <div class="material-icon-btn">
+        <span class="icon">图标</span>
+        海报
+      </div>
+    </div>
+
+    <p class="wf-section-label">组件 · 实时预览 Preview Panel</p>
+    <div class="preview-panel">
+      <div class="preview-panel-label">效果预览</div>
+      <img class="preview-panel-img" id="templatePreview" src="https://picsum.photos/seed/comic-anime/400/560" alt="模板预览占位">
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="bottom-bar-actions">
+      <button type="button" class="btn btn-outline" id="saveDraftBtn">保存草稿</button>
+      <button type="button" class="btn btn-primary" id="generateBtn">开始生成</button>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "task_id": "demo-task-001",
+  "status": "done",
+  "progress": 100,
+  "elements": [
+    {
+      "id": "demo-elem-1",
+      "url": "/files/mock/element1.svg",
+      "label": "人物"
+    },
+    {
+      "id": "demo-elem-2",
+      "url": "/files/mock/element2.svg",
+      "label": "道具"
+    }
+  ],
+  "result_url": null,
+  "error_message": null
+}

@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+momentmaker.db
+files/uploads/*
+files/elements/*
+files/results/*

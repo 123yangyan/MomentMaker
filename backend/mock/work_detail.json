@@ -1,0 +1,12 @@
+{
+  "work_id": "demo-work-001",
+  "title": "热爱，就要大声一点！",
+  "cover_url": "/files/mock/result.svg",
+  "result_urls": ["/files/mock/result.svg"],
+  "template": "comic",
+  "style": "anime",
+  "material": ["badge", "ticket"],
+  "nickname": "二次元少女",
+  "likes": 88,
+  "created_at": "2026-09-03T20:00:00"
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f3ec">
+  <title>MomentMaker - 上传素材</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page page--flow">
+    <div class="wf-badge">Wireframe · P2 素材上传页 · Tab 栏隐藏</div>
+
+    <nav class="topbar flow-titlebar">
+      <span class="topbar-title">上传素材</span>
+    </nav>
+
+    <!-- 作品名称前置：用户在上传素材前即可为本次创作命名 -->
+    <div class="work-name-editor upload-work-name" id="workNameEditor">
+      <label class="form-label" for="workNameInput">作品名称</label>
+      <input type="text" class="work-name-input" id="workNameInput" maxlength="30" placeholder="用户ABCD">
+    </div>
+
+    <p class="wf-section-label">组件 · 上传区域 Upload Zone</p>
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-zone-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      </div>
+      <div class="upload-zone-title">点击上传照片或视频</div>
+      <div class="upload-zone-desc">图片（最多 20 张）/ 视频（自动抽帧）</div>
+      <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden>
+    </div>
+
+    <p class="wf-section-label">组件 · 预览缩略图 Grid</p>
+    <div class="upload-preview-grid" id="previewGrid"></div>
+
+    <!-- 直接复用广场页的模板选择样式，在上传页完成模板选择 -->
+    <section class="square-template-section upload-choice-section" aria-labelledby="uploadTemplateTitle">
+      <h2 class="square-template-title" id="uploadTemplateTitle">
+        选择模板开始创作 <span aria-hidden="true">✦</span>
+      </h2>
+      <div class="square-template-list" id="uploadTemplateList">
+        <button type="button" class="square-template-item selected" data-template="comic" aria-label="选择模板一">
+          <img src="https://picsum.photos/seed/mm-template-1/240/300" alt="模板一占位图" loading="lazy">
+        </button>
+        <button type="button" class="square-template-item" data-template="map" aria-label="选择模板二">
+          <img src="https://picsum.photos/seed/mm-template-2/240/300" alt="模板二占位图" loading="lazy">
+        </button>
+        <button type="button" class="square-template-item" data-template="album" aria-label="选择模板三">
+          <img src="https://picsum.photos/seed/mm-template-3/240/300" alt="模板三占位图" loading="lazy">
+        </button>
+      </div>
+    </section>
+
+    <!-- 物料类型为单选；后续替换 img 的 src 即可使用正式占位图 -->
+    <section class="upload-choice-section material-choice-section" aria-labelledby="materialChoiceTitle">
+      <h2 class="square-template-title" id="materialChoiceTitle">
+        选择物料类型 <span aria-hidden="true">✦</span>
+      </h2>
+      <div class="material-choice-list" id="materialChoiceList">
+        <button type="button" class="material-choice-card selected" data-material="keychain">
+          <img src="https://picsum.photos/seed/material-keychain/240/180" alt="钥匙扣占位图" loading="lazy">
+          <span>钥匙扣</span>
+        </button>
+        <button type="button" class="material-choice-card" data-material="badge">
+          <img src="https://picsum.photos/seed/material-badge/240/180" alt="吧唧占位图" loading="lazy">
+          <span>吧唧</span>
+        </button>
+        <button type="button" class="material-choice-card" data-material="postcard">
+          <img src="https://picsum.photos/seed/material-postcard/240/180" alt="明信片占位图" loading="lazy">
+          <span>明信片</span>
+        </button>
+      </div>
+    </section>
+
+    <button type="button" class="demo-link" id="demoLink">使用样例素材体验 →</button>
+  </div>
+
+  <div class="bottom-bar">
+    <p class="wf-section-label bottom-bar-label">组件 · 底部操作栏 Dual Action Bar</p>
+    <div class="bottom-bar-actions">
+      <button type="button" class="btn btn-outline" id="saveDraftBtn">保存草稿</button>
+      <button type="button" class="btn btn-primary" id="nextBtn" disabled>开始创作</button>
+    </div>
+  </div>
+
+  <div class="loading-overlay hidden" id="uploadLoading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">AI 正在识别素材...</div>
+    <div class="loading-sub">正在分析画面与氛围</div>
+    <div class="progress-bar">
+      <div class="progress-fill"></div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
