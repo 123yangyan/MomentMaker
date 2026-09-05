@@ -37,11 +37,11 @@ function getWorkName() {
   } catch (e) {
     // ignore
   }
-  return DEFAULT_WORK_NAME;
+  return '';
 }
 
 function setWorkName(name) {
-  const finalName = (name || '').trim() || DEFAULT_WORK_NAME;
+  const finalName = (name || '').trim();
   try {
     sessionStorage.setItem(WORK_NAME_KEY, finalName);
   } catch (e) {
@@ -57,8 +57,7 @@ function initWorkNameEditor() {
 
   const syncInputFromStorage = () => {
     const name = getWorkName();
-    input.value = name === DEFAULT_WORK_NAME ? '' : name;
-    input.placeholder = DEFAULT_WORK_NAME;
+    input.value = name;
   };
 
   syncInputFromStorage();
@@ -217,6 +216,7 @@ function initLightbox() {
 function initUploadPage() {
   const zone = document.getElementById('uploadZone');
   const input = document.getElementById('fileInput');
+  const workNameInput = document.getElementById('workNameInput');
   const previewGrid = document.getElementById('previewGrid');
   const nextBtn = document.getElementById('nextBtn');
   const saveDraftBtn = document.getElementById('saveDraftBtn');
@@ -288,7 +288,7 @@ function initUploadPage() {
   });
 
   const updateNextBtn = () => {
-    if (nextBtn) nextBtn.disabled = files.length === 0;
+    if (nextBtn) nextBtn.disabled = files.length === 0 || !workNameInput?.value.trim();
   };
 
   const renderPreviews = () => {
@@ -312,6 +312,7 @@ function initUploadPage() {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const idx = parseInt(btn.dataset.index);
+        if (files[idx]?.file) URL.revokeObjectURL(files[idx].url);
         files.splice(idx, 1);
         renderPreviews();
         updateNextBtn();
@@ -349,19 +350,60 @@ function initUploadPage() {
 
   function handleFiles(fileList) {
     Array.from(fileList).slice(0, 20 - files.length).forEach(file => {
-      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+      if (file.type.startsWith('image/')) {
         files.push({
+          file,
           url: URL.createObjectURL(file),
           name: file.name
         });
+      } else {
+        showToast(`仅支持图片：${file.name}`);
       }
     });
     renderPreviews();
     updateNextBtn();
   }
 
-  nextBtn?.addEventListener('click', () => {
+  workNameInput?.addEventListener('input', updateNextBtn);
+
+  // 生成后端可直接接收的上传标签。文件本体不写入 Web Storage；这里只保存标签和任务参数。
+  const prepareUploadLabels = async () => {
+    const workName = workNameInput?.value.trim();
+    if (!workName) throw new Error('请填写作品名称');
+    if (!window.MomentMakerUploadLabels) throw new Error('上传标签模块加载失败');
+
+    const manifest = await window.MomentMakerUploadLabels.buildManifest(files.map(item => item.file));
+    const taskPayload = {
+      schema_version: '1.0',
+      upload_id: null,
+      file_ids: [],
+      work_name: workName,
+      template: selectedTemplate,
+      style: 'anime',
+      material: selectedMaterial
+    };
+
+    sessionStorage.setItem('momentmaker_upload_manifest', JSON.stringify(manifest));
+    sessionStorage.setItem('momentmaker_task_payload', JSON.stringify(taskPayload));
+    setWorkName(workName);
+  };
+
+  nextBtn?.addEventListener('click', async () => {
     if (files.length === 0) return;
+    const originalText = nextBtn.textContent;
+    nextBtn.disabled = true;
+    nextBtn.textContent = '正在校验图片...';
+
+    try {
+      await prepareUploadLabels();
+    } catch (error) {
+      showToast(error.message || '图片标签生成失败，请重试');
+      nextBtn.textContent = originalText;
+      updateNextBtn();
+      return;
+    }
+
+    nextBtn.textContent = originalText;
     if (loadingOverlay) {
       loadingOverlay.classList.remove('hidden');
       const fill = loadingOverlay.querySelector('.progress-fill');
@@ -383,9 +425,14 @@ function initUploadPage() {
       showToast('请先上传素材');
       return;
     }
+    if (!workNameInput?.value.trim()) {
+      showToast('请填写作品名称');
+      workNameInput?.focus();
+      return;
+    }
 
     saveDraftAndRedirect(1, {
-      workName: setWorkName(document.getElementById('workNameInput')?.value),
+      workName: setWorkName(workNameInput.value),
       fileCount: files.length,
       template: selectedTemplate,
       material: selectedMaterial
