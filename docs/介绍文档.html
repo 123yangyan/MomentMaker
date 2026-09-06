@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MomentMaker · 产品简要介绍</title>
+  <style>
+    /* ===== 纸感纪念配色（与 prototype 一致） ===== */
+    :root {
+      --cream: #f5f3ec;
+      --paper: #fffef9;
+      --ink: #282e29;
+      --muted: #777c72;
+      --line: #dedfd4;
+      --orange: #ea653c;
+      --sage: #dce5c2;
+      --sage-block: #e9eddf;
+      --choice: #fff5ea;
+      --tag-bg: #eaece2;
+      --tag-text: #666e5a;
+      --shadow: 0 10px 28px #282e2914;
+      --shadow-soft: 0 4px 12px #282e290a;
+      --radius: 14px;
+      --radius-lg: 18px;
+      --radius-pill: 999px;
+
+      /* 进度标签色 */
+      --done: #3d7a5a;
+      --done-bg: #e4f0e8;
+      --wip: #c47a2a;
+      --wip-bg: #fff5ea;
+      --todo: #8a8f84;
+      --todo-bg: #eaece2;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      overflow: hidden;
+    }
+
+    /* ===== 幻灯容器 ===== */
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 48px 64px 80px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(40px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .slide.prev {
+      transform: translateX(-40px);
+    }
+
+    /* ===== 内容卡片 ===== */
+    .card {
+      width: min(920px, 92vw);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 48px 56px;
+    }
+
+    .slide-cover .card {
+      text-align: center;
+      padding: 64px 56px;
+    }
+
+    /* ===== 封面 ===== */
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 28px;
+      font-weight: 700;
+      border-radius: 18px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 18px #ea653c38;
+    }
+
+    .title {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .slogan {
+      font-size: 22px;
+      color: var(--orange);
+      font-weight: 500;
+      margin-bottom: 28px;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ===== 通用标题 ===== */
+    .slide-title {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .slide-desc {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    /* ===== 列表 ===== */
+    .point-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .point-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 17px;
+      line-height: 1.55;
+    }
+
+    .point-list li::before {
+      content: "";
+      flex-shrink: 0;
+      width: 8px;
+      height: 8px;
+      margin-top: 8px;
+      background: var(--orange);
+      border-radius: 50%;
+    }
+
+    .point-list .label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* ===== 双栏对比（痛点 → 方案） ===== */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .col-box {
+      background: var(--sage-block);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      border: 1px solid var(--line);
+    }
+
+    .col-box h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--ink);
+    }
+
+    .col-box ul {
+      list-style: none;
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .col-box ul li + li { margin-top: 8px; }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .tag {
+      background: var(--tag-bg);
+      color: var(--tag-text);
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+    }
+
+    /* ===== 流程步骤条 ===== */
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 24px 0 28px;
+      flex-wrap: wrap;
+    }
+
+    .flow-step {
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+      position: relative;
+    }
+
+    .flow-step .num {
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 auto 8px;
+    }
+
+    .flow-step .name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .flow-step .file {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: "Consolas", monospace;
+    }
+
+    .flow-arrow {
+      color: var(--line);
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    /* ===== 进度标签 ===== */
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .badge-done { background: var(--done-bg); color: var(--done); }
+    .badge-wip  { background: var(--wip-bg);  color: var(--wip); }
+    .badge-todo { background: var(--todo-bg); color: var(--todo); }
+
+    /* ===== 进度对照表 ===== */
+    .progress-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+      margin-top: 8px;
+    }
+
+    .progress-table th,
+    .progress-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .progress-table th {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+      background: var(--sage-block);
+    }
+
+    .progress-table tr:last-child td { border-bottom: none; }
+
+    .closing {
+      margin-top: 24px;
+      padding: 16px 20px;
+      background: var(--choice);
+      border-left: 4px solid var(--orange);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    /* ===== 底部导航 ===== */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      background: rgba(255, 254, 249, 0.92);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+
+    .nav-hint {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .nav-hint kbd {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--tag-bg);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 12px;
+      margin: 0 2px;
+    }
+
+    .dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--line);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .dot.active {
+      background: var(--orange);
+      transform: scale(1.2);
+    }
+
+    .page-num {
+      font-size: 14px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ===== 点击区域 ===== */
+    .click-zone {
+      position: fixed;
+      top: 0;
+      bottom: 56px;
+      width: 30%;
+      z-index: 50;
+      cursor: pointer;
+    }
+
+    .click-zone.left  { left: 0; }
+    .click-zone.right { right: 0; }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 720px) {
+      .slide { padding: 32px 20px 72px; }
+      .card  { padding: 32px 24px; }
+      .title { font-size: 36px; }
+      .slide-title { font-size: 26px; }
+      .two-col { grid-template-columns: 1fr; }
+      .flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- 第 1 页 · 封面 -->
+  <section class="slide slide-cover active" data-index="0">
+    <div class="card">
+      <div class="logo">m✦</div>
+      <h1 class="title">MomentMaker</h1>
+      <p class="slogan">把你的故事，变成传得出去的记忆</p>
+      <p class="subtitle">面向漫展、演唱会等线下活动的<br>AI 纪念物料生成</p>
+    </div>
+  </section>
+
+  <!-- 第 2 页 · 要做什么 -->
+  <section class="slide" data-index="1">
+    <div class="card">
+      <h2 class="slide-title">我们要做什么？</h2>
+      <p class="slide-desc">从现场素材到可分享的纪念成品，零设计门槛</p>
+
+      <div class="two-col">
+        <div class="col-box">
+          <h3>用户痛点</h3>
+          <ul>
+            <li>漫展 / 演唱会现场拍了大量照片</li>
+            <li>没有设计能力，做不出精美成品</li>
+            <li>素材散落，难以形成可分享的记忆</li>
+          </ul>
+        </div>
+        <div class="col-box">
+          <h3>我们的方案</h3>
+          <ul>
+            <li>上传现场照片</li>
+            <li>AI 智能选图 + 生成纪念海报</li>
+            <li>可选发布到作品广场，形成 UGC 社区</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tags">
+        <span class="tag">连环画</span>
+        <span class="tag">故事地图</span>
+        <span class="tag">记录册</span>
+        <span class="tag">钥匙扣</span>
+        <span class="tag">吧唧</span>
+        <span class="tag">明信片</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第 3 页 · 用户流程 -->
+  <section class="slide" data-index="2">
+    <div class="card">
+      <h2 class="slide-title">用户怎么用？</h2>
+      <p class="slide-desc">完整主流程：浏览 → 创作 → 生成 → 分享</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="num">1</div>
+          <div class="name">广场浏览</div>
+          <div class="file">index.html</div>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <div class="num">2</div>
+          <div class="name">上传素材</div>
+          <div class="file">upload.html</div>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <div class="num">3</div>
+          <div class="name">选模板/物料</div>
+          <div class="file">template.html</div>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <div class="num">4</div>
+          <div class="name">AI 生成</div>
+          <div class="file">后端流水线</div>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <div class="num">5</div>
+          <div class="name">发布广场</div>
+          <div class="file">mine.html</div>
+        </div>
+      </div>
+
+      <ul class="point-list">
+        <li>用户在广场发现灵感，一键进入创作</li>
+        <li>上传现场照片，选择模板类型与实体物料形态</li>
+        <li>AI 自动处理，生成可分享的纪念海报</li>
+        <li>满意后发布到广场，与其他用户互动点赞</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 第 4 页 · 前端进度 -->
+  <section class="slide" data-index="3">
+    <div class="card">
+      <h2 class="slide-title">前端进度 · prototype</h2>
+      <p class="slide-desc">移动端静态原型，主交互闭环可演示</p>
+
+      <ul class="point-list">
+        <li>
+          <span><span class="badge badge-done">已完成</span>
+          <span class="label">4 个核心页面</span> — 广场、上传、模板、我的，Tab 导航完整</span>
+        </li>
+        <li>
+          <span><span class="badge badge-done">已完成</span>
+          <span class="label">上传交互</span> — 点击/拖拽上传、样例素材体验、草稿保存</span>
+        </li>
+        <li>
+          <span><span class="badge badge-done">已完成</span>
+          <span class="label">社区展示</span> — 瀑布流作品、Lightbox 预览、点赞 UI</span>
+        </li>
+        <li>
+          <span><span class="badge badge-wip">进行中</span>
+          <span class="label">生成结果</span> — 目前为占位图，伪 Loading 动画</span>
+        </li>
+        <li>
+          <span><span class="badge badge-todo">未开始</span>
+          <span class="label">元素编辑 / 预览导出</span> — CSS 已预留，页面尚未实现</span>
+        </li>
+        <li>
+          <span><span class="badge badge-todo">未开始</span>
+          <span class="label">后端联调</span> — 尚未对接真实 AI 生成接口</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 第 5 页 · 后端进度 -->
+  <section class="slide" data-index="4">
+    <div class="card">
+      <h2 class="slide-title">后端进度 · backend</h2>
+      <p class="slide-desc">第一阶段 AI 流水线已跑通，可真实出图</p>
+
+      <ul class="point-list">
+        <li>
+          <span><span class="badge badge-done">已完成</span>
+          <span class="label">素材上传</span> — 图片批量上传、EXIF 读取、Session 隔离</span>
+        </li>
+        <li>
+          <span><span class="badge badge-done">已完成</span>
+          <span class="label">AI 评分选图</span> — GLM-4.5V 结构化打分，自动选 Top 4</span>
+        </li>
+        <li>
+          <span><span class="badge badge-done">已完成</span>
+          <span class="label">海报生成</span> — Seedream 多图融合，受控 Prompt 出竖版海报</span>
+        </li>
+        <li>
+          <span><span class="badge badge-done">已完成</span>
+          <span class="label">任务 & 广场</span> — 状态轮询、作品发布/列表/点赞、Mock 演示模式</span>
+        </li>
+        <li>
+          <span><span class="badge badge-todo">未开始</span>
+          <span class="label">视频抽帧 / 抠图合成 / 用户登录</span> — PRD 下一阶段能力</span>
+        </li>
+      </ul>
+
+      <div class="tags" style="margin-top: 20px;">
+        <span class="tag">FastAPI</span>
+        <span class="tag">SQLite</span>
+        <span class="tag">/api/upload</span>
+        <span class="tag">/api/task/*</span>
+        <span class="tag">/api/works</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第 6 页 · 进度总览 -->
+  <section class="slide" data-index="5">
+    <div class="card">
+      <h2 class="slide-title">进度总览</h2>
+      <p class="slide-desc">MVP 目标：现场能演示「上传 → 出图 → 上广场」</p>
+
+      <table class="progress-table">
+        <thead>
+          <tr>
+            <th>模块</th>
+            <th>目标</th>
+            <th>现状</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>前端交互闭环</td>
+            <td>完整用户流程可点</td>
+            <td><span class="badge badge-done">可演示</span></td>
+          </tr>
+          <tr>
+            <td>AI 生成链路</td>
+            <td>真实出图</td>
+            <td><span class="badge badge-done">后端已跑通</span></td>
+          </tr>
+          <tr>
+            <td>前后端联调</td>
+            <td>前端调用真实 API</td>
+            <td><span class="badge badge-wip">下一步</span></td>
+          </tr>
+          <tr>
+            <td>视频 / 抠图 / 编辑页</td>
+            <td>完整 PRD 能力</td>
+            <td><span class="badge badge-todo">后续迭代</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="closing">
+        MVP 演示路径：用户上传现场照片 → AI 生成纪念海报 → 发布到作品广场
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- 点击翻页区域 -->
+<div class="click-zone left"  id="zonePrev" title="上一页"></div>
+<div class="click-zone right" id="zoneNext" title="下一页"></div>
+
+<!-- 底部导航栏 -->
+<nav class="nav-bar">
+  <span class="nav-hint"><kbd>←</kbd> <kbd>→</kbd> 翻页 · <kbd>F</kbd> 全屏</span>
+  <div class="dots" id="dots"></div>
+  <span class="page-num" id="pageNum">1 / 6</span>
+</nav>
+
+<script>
+  // ===== 幻灯片控制器 =====
+  const slides = document.querySelectorAll(".slide");
+  const dotsContainer = document.getElementById("dots");
+  const pageNum = document.getElementById("pageNum");
+  const total = slides.length;
+  let current = 0;
+
+  // 生成底部圆点指示器
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement("span");
+    dot.className = "dot" + (i === 0 ? " active" : "");
+    dot.addEventListener("click", () => goTo(i));
+    dotsContainer.appendChild(dot);
+  }
+
+  const dots = dotsContainer.querySelectorAll(".dot");
+
+  // 切换到指定页
+  function goTo(index) {
+    if (index < 0 || index >= total) return;
+
+    slides[current].classList.remove("active");
+    slides[current].classList.add("prev");
+    dots[current].classList.remove("active");
+
+    current = index;
+
+    slides.forEach(s => s.classList.remove("prev"));
+    slides[current].classList.add("active");
+    dots[current].classList.add("active");
+
+    pageNum.textContent = `${current + 1} / ${total}`;
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  // 键盘：左右方向键翻页，F 全屏
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); next(); }
+    if (e.key === "ArrowLeft")  { e.preventDefault(); prev(); }
+    if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  });
+
+  // 点击左右区域翻页
+  document.getElementById("zonePrev").addEventListener("click", prev);
+  document.getElementById("zoneNext").addEventListener("click", next);
+</script>
+
+</body>
+</html>
