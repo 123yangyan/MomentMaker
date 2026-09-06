@@ -144,11 +144,12 @@ async function loadWorksFromApi() {
   }
 }
 
-// Lightbox 控制（P1 广场页）— 事件委托，支持动态卡片
+// Lightbox 控制：广场卡片和「我的」已发布作品都能打开成品大图
 function initLightbox() {
   const lightbox = document.getElementById('lightbox');
+  if (!lightbox) return;
   const worksGrid = document.getElementById('worksGrid');
-  if (!lightbox || !worksGrid) return;
+  const panelPublished = document.getElementById('panel-published');
 
   const closeBtn = lightbox.querySelector('.lightbox-close');
   const mainImg = document.getElementById('lightboxImg') || lightbox.querySelector('.lightbox-main img');
@@ -191,7 +192,7 @@ function initLightbox() {
     document.body.style.overflow = 'hidden';
   };
 
-  worksGrid.addEventListener('click', (event) => {
+  worksGrid?.addEventListener('click', (event) => {
     const card = event.target.closest('.work-card');
     if (!card) return;
 
@@ -206,7 +207,19 @@ function initLightbox() {
     });
   });
 
-  // “我的”页面会带 work 参数跳回广场，进入后直接打开对应成品。
+  // 「我的」列表是后渲染的，用事件委托监听查看按钮和整行点击。
+  panelPublished?.addEventListener('click', (event) => {
+    const item = event.target.closest('[data-preview-url]');
+    if (!item) return;
+    event.preventDefault();
+    showWork({
+      work_id: item.dataset.workId,
+      title: item.dataset.title,
+      cover_url: item.dataset.previewUrl,
+      likes: Number(item.dataset.likes || 0)
+    });
+  });
+
   const sharedWorkId = new URLSearchParams(window.location.search).get('work');
   if (sharedWorkId && window.MomentMakerApi) {
     window.MomentMakerApi.fetchWorkDetail(sharedWorkId)
@@ -227,7 +240,7 @@ function initLightbox() {
       likeCount = result.likes;
       liked = true;
       updateLikeUI();
-      const card = worksGrid.querySelector(`.work-card[data-work-id="${currentWorkId}"]`);
+      const card = worksGrid?.querySelector(`.work-card[data-work-id="${currentWorkId}"]`);
       const metaEl = card?.querySelector('.work-card-meta');
       if (metaEl) metaEl.textContent = `♡ ${likeCount}`;
     } catch (error) {
@@ -668,7 +681,7 @@ async function initProfilePage() {
       }
 
       const workItems = works.map((work) => `
-        <a class="profile-work-item" href="index.html?work=${encodeURIComponent(work.work_id)}">
+        <div class="profile-work-item" data-work-id="${work.work_id}" data-title="${work.title || ''}" data-preview-url="${work.cover_url || ''}" data-likes="${work.likes || 0}">
           <div class="profile-work-thumb">
             <img src="${window.MomentMakerApi.fileUrl(work.cover_url)}" alt="${work.title}">
           </div>
@@ -676,8 +689,8 @@ async function initProfilePage() {
             <div class="profile-work-title">${work.title}</div>
             <div class="profile-work-meta">${TEMPLATE_NAMES[work.template] || work.template} · 赞 ${work.likes || 0}</div>
           </div>
-          <span class="profile-chevron">›</span>
-        </a>
+          <button type="button" class="btn btn-sm">查看</button>
+        </div>
       `).join('');
 
       const processingItems = processing.map((task) => `
@@ -691,7 +704,7 @@ async function initProfilePage() {
       `).join('');
 
       const unpublishedItems = unpublished.map((task) => `
-        <a class="profile-work-item" href="${window.MomentMakerApi.fileUrl(task.result_url)}" target="_blank" rel="noopener">
+        <div class="profile-work-item" data-title="${task.work_title || ''}" data-preview-url="${task.result_url || ''}" data-likes="0">
           <div class="profile-work-thumb">
             <img src="${window.MomentMakerApi.fileUrl(task.result_url)}" alt="${task.work_title}">
           </div>
@@ -699,8 +712,8 @@ async function initProfilePage() {
             <div class="profile-work-title">${task.work_title}</div>
             <div class="profile-work-meta">已生成，正在补发到广场</div>
           </div>
-          <span class="profile-chevron">›</span>
-        </a>
+          <button type="button" class="btn btn-sm">查看</button>
+        </div>
       `).join('');
 
       const failedItems = failed.map((task) => `

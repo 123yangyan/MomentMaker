@@ -845,6 +845,16 @@ textarea:focus-visible {
   color: var(--text-muted);
 }
 
+.profile-work-item .btn-sm {
+  flex-shrink: 0;
+  min-width: 56px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  box-shadow: none;
+}
+
 .profile-menu {
   display: grid;
   gap: 8px;
@@ -1098,8 +1108,9 @@ textarea:focus-visible {
 
 .lightbox-main img {
   width: 100%;
-  aspect-ratio: 3/4;
-  object-fit: cover;
+  max-height: 70vh;
+  object-fit: contain;
+  background: #fff;
 }
 
 .lightbox-footer {

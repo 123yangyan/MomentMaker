@@ -3,11 +3,29 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 
 from config import BASE_DIR, CORS_ORIGINS, FILES_DIR, MOCK_DIR
 
 # 原型页目录：与 backend 同级，便于单端口同时提供页面和 API。
 PROTOTYPE_DIR = BASE_DIR.parent / "prototype"
+
+
+class NoCacheStaticFiles(StaticFiles):
+    """演示期间 HTML/JS/CSS 禁止浏览器缓存，避免用户看到旧版按钮或脚本。"""
+
+    async def get_response(self, path: str, scope) -> Response:
+        response = await super().get_response(path, scope)
+        content_type = response.headers.get("content-type", "")
+        if (
+            path.endswith((".html", ".js", ".css"))
+            or "text/html" in content_type
+            or "javascript" in content_type
+            or "text/css" in content_type
+        ):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+        return response
 from database import (
     Base,
     engine,
@@ -75,6 +93,6 @@ def health():
 if PROTOTYPE_DIR.is_dir():
     app.mount(
         "/",
-        StaticFiles(directory=str(PROTOTYPE_DIR), html=True),
+        NoCacheStaticFiles(directory=str(PROTOTYPE_DIR), html=True),
         name="prototype",
     )

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f5f3ec">
   <title>MomentMaker - 我的</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260906-2">
 </head>
 <body class="mine-page">
   <div class="page page--tabbar">
@@ -94,8 +94,25 @@
     </a>
   </nav>
 
-  <script src="js/upload-labels.js"></script>
-  <script src="js/task-api.js"></script>
-  <script src="js/app.js"></script>
+  <!-- 与广场页同一套大图预览，点击已发布作品时在当前页打开 -->
+  <div class="lightbox" id="lightbox">
+    <button type="button" class="lightbox-close" aria-label="关闭">×</button>
+    <div class="lightbox-content">
+      <div class="lightbox-main wf-photo">
+        <img id="lightboxImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="作品预览">
+      </div>
+      <div class="lightbox-footer">
+        <p class="lightbox-title"></p>
+        <button type="button" class="lightbox-like-btn" id="lightboxLikeBtn" aria-label="点赞">
+          <span class="lightbox-like-icon">♡</span>
+          <span class="lightbox-like-count">0</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/upload-labels.js?v=20260906-2"></script>
+  <script src="js/task-api.js?v=20260906-2"></script>
+  <script src="js/app.js?v=20260906-2"></script>
 </body>
 </html>
