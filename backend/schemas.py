@@ -2,9 +2,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-TemplateType = Literal["comic", "map", "album"]
+TemplateType = Literal["heat", "paint", "festival"]
 StyleType = Literal["anime", "cyber", "realistic"]
-MaterialType = Literal["keychain", "badge", "postcard"]
+MaterialType = Literal["sticker", "receipt", "postcard", "comicbook"]
 
 
 class ApiResponse(BaseModel):
@@ -19,7 +19,7 @@ class TaskStartRequest(BaseModel):
     template: TemplateType
     # 当前前端没有单独的风格控件，默认使用二次元；保留字段方便后续扩展。
     style: StyleType = "anime"
-    # 前端物料卡片是单选，因此任务接口只接收一个物料类型。
+    # 前端物料卡片是单选：sticker / receipt / postcard / comicbook。
     material: MaterialType
     story_text: str | None = Field(default=None, max_length=500)
     work_title: str = Field(default="未命名作品", min_length=1, max_length=30)

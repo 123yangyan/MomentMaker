@@ -60,7 +60,7 @@ def main() -> int:
                 headers={"X-Session-Id": session_id},
                 json={
                     "file_ids": file_ids,
-                    "template": "comic",
+                    "template": "heat",
                     "style": "anime",
                     "material": "postcard",
                     "work_title": "真实 API 第一阶段测试",

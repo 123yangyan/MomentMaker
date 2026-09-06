@@ -64,7 +64,7 @@ def generate_poster(
         "model": model,
         "prompt": prompt or DEFAULT_PROMPT,
         "image": [_to_data_url(Path(path)) for path in image_paths],
-        "size": "2K",
+        "size": "1K",
         "response_format": "url",
         "watermark": False,
     }

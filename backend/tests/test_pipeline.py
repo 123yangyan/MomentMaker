@@ -136,7 +136,7 @@ class PipelineIntegrationTest(unittest.TestCase):
                     headers={"X-Session-Id": session_id},
                     json={
                         "file_ids": uploaded_ids,
-                        "template": "comic",
+                        "template": "heat",
                         "material": "postcard",
                         "work_title": "单图测试",
                     },
@@ -186,7 +186,7 @@ class PipelineIntegrationTest(unittest.TestCase):
                     headers={"X-Session-Id": session_id},
                     json={
                         "file_ids": uploaded_ids,
-                        "template": "comic",
+                        "template": "heat",
                         "material": "postcard",
                         "story_text": "突出团队协作",
                         "work_title": "六图离线测试",
@@ -243,8 +243,8 @@ class PipelineIntegrationTest(unittest.TestCase):
                     headers={"X-Session-Id": session_id},
                     json={
                         "file_ids": uploaded_ids,
-                        "template": "map",
-                        "material": "badge",
+                        "template": "paint",
+                        "material": "receipt",
                         "work_title": "部分失败测试",
                     },
                 )
@@ -288,8 +288,8 @@ class PipelineIntegrationTest(unittest.TestCase):
                     headers={"X-Session-Id": session_id},
                     json={
                         "file_ids": uploaded_ids,
-                        "template": "album",
-                        "material": "keychain",
+                        "template": "festival",
+                        "material": "sticker",
                         "work_title": "发布测试",
                     },
                 )
@@ -300,7 +300,7 @@ class PipelineIntegrationTest(unittest.TestCase):
                     headers={"X-Session-Id": other_session},
                     json={
                         "task_id": task_id,
-                        "material": ["keychain"],
+                        "material": ["sticker"],
                         "nickname": "他人",
                     },
                 )
@@ -311,7 +311,7 @@ class PipelineIntegrationTest(unittest.TestCase):
                     headers={"X-Session-Id": session_id},
                     json={
                         "task_id": task_id,
-                        "material": ["keychain"],
+                        "material": ["sticker"],
                         "nickname": "本人",
                     },
                 )
@@ -341,7 +341,7 @@ class PipelineIntegrationTest(unittest.TestCase):
                     progress=20,
                     file_ids='["fake"]',
                     session_id=session_id,
-                    template="comic",
+                    template="heat",
                     style="anime",
                     material='["postcard"]',
                 )

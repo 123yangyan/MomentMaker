@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f5f3ec">
   <title>MomentMaker - 上传素材</title>
-  <link rel="stylesheet" href="css/style.css?v=20260906-2">
+  <link rel="stylesheet" href="css/style.css?v=20260906-6">
 </head>
 <body>
   <div class="page page--flow">
@@ -18,7 +18,7 @@
     <!-- 作品名称前置：用户在上传素材前即可为本次创作命名 -->
     <div class="work-name-editor upload-work-name" id="workNameEditor">
       <label class="form-label" for="workNameInput">作品名称</label>
-      <input type="text" class="work-name-input" id="workNameInput" maxlength="30" placeholder="请输入作品名称" required>
+      <input type="text" class="work-name-input" id="workNameInput" maxlength="30" placeholder="不填则默认为「最伟大的作品」">
     </div>
 
     <p class="wf-section-label">组件 · 上传区域 Upload Zone</p>
@@ -40,14 +40,23 @@
         选择模板开始创作 <span aria-hidden="true">✦</span>
       </h2>
       <div class="square-template-list" id="uploadTemplateList">
-        <button type="button" class="square-template-item selected" data-template="comic" aria-label="选择模板一">
-          <img src="https://picsum.photos/seed/mm-template-1/240/300" alt="模板一占位图" loading="lazy">
+        <button type="button" class="square-template-item selected" data-template="heat" aria-label="选择热血黑客松模板">
+          <span class="choice-thumb">
+            <img src="images/templates/heat.jpg" alt="热血黑客松样例" width="480" height="600">
+          </span>
+          <span>热血黑客松</span>
         </button>
-        <button type="button" class="square-template-item" data-template="map" aria-label="选择模板二">
-          <img src="https://picsum.photos/seed/mm-template-2/240/300" alt="模板二占位图" loading="lazy">
+        <button type="button" class="square-template-item" data-template="paint" aria-label="选择彩绘模板">
+          <span class="choice-thumb">
+            <img src="images/templates/paint.jpg" alt="彩绘样例" width="480" height="600">
+          </span>
+          <span>彩绘</span>
         </button>
-        <button type="button" class="square-template-item" data-template="album" aria-label="选择模板三">
-          <img src="https://picsum.photos/seed/mm-template-3/240/300" alt="模板三占位图" loading="lazy">
+        <button type="button" class="square-template-item" data-template="festival" aria-label="选择音乐节氛围模板">
+          <span class="choice-thumb">
+            <img src="images/templates/festival.jpg" alt="音乐节氛围样例" width="480" height="600">
+          </span>
+          <span>音乐节氛围</span>
         </button>
       </div>
     </section>
@@ -58,17 +67,29 @@
         选择物料类型 <span aria-hidden="true">✦</span>
       </h2>
       <div class="material-choice-list" id="materialChoiceList">
-        <button type="button" class="material-choice-card selected" data-material="keychain">
-          <img src="https://picsum.photos/seed/material-keychain/240/180" alt="钥匙扣占位图" loading="lazy">
-          <span>钥匙扣</span>
+        <button type="button" class="material-choice-card selected" data-material="sticker">
+          <span class="choice-thumb">
+            <img src="images/materials/sticker.jpg" alt="贴纸样例" width="480" height="640">
+          </span>
+          <span>贴纸</span>
         </button>
-        <button type="button" class="material-choice-card" data-material="badge">
-          <img src="https://picsum.photos/seed/material-badge/240/180" alt="吧唧占位图" loading="lazy">
-          <span>吧唧</span>
+        <button type="button" class="material-choice-card" data-material="receipt">
+          <span class="choice-thumb">
+            <img src="images/materials/receipt.jpg" alt="小票样例" width="480" height="640">
+          </span>
+          <span>小票</span>
         </button>
         <button type="button" class="material-choice-card" data-material="postcard">
-          <img src="https://picsum.photos/seed/material-postcard/240/180" alt="明信片占位图" loading="lazy">
+          <span class="choice-thumb">
+            <img src="images/materials/postcard.jpg" alt="明信片样例" width="480" height="640">
+          </span>
           <span>明信片</span>
+        </button>
+        <button type="button" class="material-choice-card" data-material="comicbook">
+          <span class="choice-thumb">
+            <img src="images/materials/comicbook.jpg" alt="连环画样例" width="480" height="640">
+          </span>
+          <span>连环画</span>
         </button>
       </div>
     </section>
@@ -105,6 +126,6 @@
 
   <script src="js/upload-labels.js?v=20260906-2"></script>
   <script src="js/task-api.js?v=20260906-2"></script>
-  <script src="js/app.js?v=20260906-2"></script>
+  <script src="js/app.js?v=20260906-7"></script>
 </body>
 </html>

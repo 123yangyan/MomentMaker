@@ -27,10 +27,25 @@ function bindSaveDraftBtn(btn, step, getExtra) {
   });
 }
 
-const DEFAULT_WORK_NAME = '用户ABCD';
+// 用户没填作品名称时，提交/保存都会用这个默认名
+const DEFAULT_WORK_NAME = '最伟大的作品';
 const WORK_NAME_KEY = 'momentmaker_work_name';
-const TEMPLATE_NAMES = { comic: '连环画', map: '故事地图', album: '记录册' };
-const MATERIAL_NAMES = { keychain: '钥匙扣', badge: '吧唧', postcard: '明信片' };
+const TEMPLATE_NAMES = {
+  heat: '热血黑客松',
+  paint: '彩绘',
+  festival: '音乐节氛围',
+  comic: '热血黑客松',
+  map: '彩绘',
+  album: '音乐节氛围'
+};
+const MATERIAL_NAMES = {
+  sticker: '贴纸',
+  keychain: '贴纸', // 兼容旧草稿里保存的钥匙扣代码
+  receipt: '小票',
+  badge: '小票', // 兼容旧草稿里保存的吧唧代码
+  postcard: '明信片',
+  comicbook: '连环画'
+};
 const STYLE_NAMES = { anime: '二次元', cyber: '赛博', realistic: '写实' };
 
 function getWorkName() {
@@ -291,14 +306,25 @@ function initUploadPage() {
   let redirectTimer = null;
 
   const templateFromSquare = new URLSearchParams(window.location.search).get('template');
-  const availableTemplates = ['comic', 'map', 'album'];
-  let selectedTemplate = availableTemplates.includes(templateFromSquare)
-    ? templateFromSquare
-    : 'comic';
-  let selectedMaterial = 'keychain';
+  const materialFromSquare = new URLSearchParams(window.location.search).get('material');
+  const templateAliases = { comic: 'heat', map: 'paint', album: 'festival' };
+  const materialAliases = { keychain: 'sticker', badge: 'receipt' };
+  const availableTemplates = ['heat', 'paint', 'festival'];
+  const availableMaterials = ['sticker', 'receipt', 'postcard', 'comicbook'];
+  const requestedTemplate = templateAliases[templateFromSquare] || templateFromSquare;
+  const requestedMaterial = materialAliases[materialFromSquare] || materialFromSquare;
+  let selectedTemplate = availableTemplates.includes(requestedTemplate)
+    ? requestedTemplate
+    : 'heat';
+  let selectedMaterial = availableMaterials.includes(requestedMaterial)
+    ? requestedMaterial
+    : 'sticker';
 
   templateChoices.forEach((choice) => {
     choice.classList.toggle('selected', choice.dataset.template === selectedTemplate);
+  });
+  materialChoices.forEach((choice) => {
+    choice.classList.toggle('selected', choice.dataset.material === selectedMaterial);
   });
 
   const saveCreationChoices = () => {
@@ -330,8 +356,17 @@ function initUploadPage() {
     });
   });
 
+  // 只要上传了图片就能点「开始创作」；作品名称可空，提交时再补默认名
   const updateNextBtn = () => {
-    if (nextBtn) nextBtn.disabled = files.length === 0 || !workNameInput?.value.trim() || isSubmitting;
+    if (nextBtn) nextBtn.disabled = files.length === 0 || isSubmitting;
+  };
+
+  // 读出作品名称：输入框为空时，填入默认名「最伟大的作品」
+  const resolveWorkTitle = () => {
+    const typedName = workNameInput?.value.trim() || '';
+    if (typedName) return typedName;
+    if (workNameInput) workNameInput.value = DEFAULT_WORK_NAME;
+    return DEFAULT_WORK_NAME;
   };
 
   const clearUploadTimers = () => {
@@ -446,17 +481,12 @@ function initUploadPage() {
     updateNextBtn();
   }
 
-  workNameInput?.addEventListener('input', updateNextBtn);
-
   goSquareBtn?.addEventListener('click', goToSquare);
 
   nextBtn?.addEventListener('click', async () => {
     if (files.length === 0 || isSubmitting) return;
-    const workTitle = workNameInput?.value.trim();
-    if (!workTitle) {
-      showToast('请填写作品名称');
-      return;
-    }
+    // 没填名称时，自动使用默认作品名
+    const workTitle = resolveWorkTitle();
 
     isSubmitting = true;
     updateNextBtn();
@@ -504,13 +534,9 @@ function initUploadPage() {
       showToast('请先上传素材');
       return;
     }
-    if (!workNameInput?.value.trim()) {
-      showToast('请填写作品名称');
-      workNameInput?.focus();
-      return;
-    }
+    // 保存草稿时同样允许空名称，自动补上默认名
     saveDraftAndRedirect(1, {
-      workName: setWorkName(workNameInput.value),
+      workName: setWorkName(resolveWorkTitle()),
       fileCount: files.length,
       template: selectedTemplate,
       material: selectedMaterial
@@ -551,7 +577,7 @@ function initTemplatePage() {
     }
   };
 
-  let selectedTemplate = 'comic';
+  let selectedTemplate = 'heat';
   let selectedStyle = 'anime';
 
   const updatePreview = () => {

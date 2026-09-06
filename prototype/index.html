@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f5f3ec">
   <title>MomentMaker - 广场</title>
-  <link rel="stylesheet" href="css/style.css?v=20260906-2">
+  <link rel="stylesheet" href="css/style.css?v=20260906-13">
 </head>
 <body>
   <div class="page page--tabbar">
@@ -27,72 +27,125 @@
         <div class="kingkong-stage">
           <div class="kingkong-viewport">
             <div class="kingkong-track" id="kingkongTrack">
-            <!-- 第 1 屏：庆祝海报（图片高度约为原来的一半） -->
+            <!-- 第 1 屏：左文右图 + 从左到右的暗色渐变遮罩 -->
             <div class="kingkong-slide kingkong-slide--banner">
               <div class="hackathon-banner">
-                <div class="hackathon-banner-visual wf-photo">
-                  <img src="https://picsum.photos/seed/hackathon/480/100" alt="黑客松庆祝海报占位" loading="eager">
+                <!-- 底图铺满整张 Banner，主体偏右，给左侧文字留空间 -->
+                <div class="hackathon-banner-visual">
+                  <img src="images/banner/hackathon.jpg?v=20260906-12" alt="黑客松现场氛围" loading="eager">
                 </div>
+                <!-- 线性渐变蒙版：左侧高不透明度保证读字，右侧逐渐透明露出现场 -->
+                <div class="hackathon-banner-mask" aria-hidden="true"></div>
                 <div class="hackathon-banner-text">
                   <p class="hackathon-banner-tag">HACKATHON 2026</p>
-                  <h2 class="hackathon-banner-title">热烈庆祝黑客松</h2>
-                  <p class="hackathon-banner-desc">MomentMaker · 把现场故事变成传得出去的记忆</p>
+                  <h2 class="hackathon-banner-title">热烈庆祝<span>黑客松</span></h2>
+                  <p class="hackathon-banner-desc">MomentMaker<br>把现场故事变成传得出去的记忆</p>
                 </div>
               </div>
             </div>
-            <!-- 每位选手单独一屏：左头像，右名字 + 口号 -->
+            <!-- 第 2–6 屏：左信息区 + 右倾斜多图堆叠，外框比例不变 -->
             <div class="kingkong-slide kingkong-slide--member">
               <article class="member-card">
-                <div class="team-avatar wf-photo">
-                  <img src="https://picsum.photos/seed/member1/160/160" alt="张三">
+                <div class="member-banner-info">
+                  <div class="member-banner-identity">
+                    <div class="team-avatar">
+                      <img src="images/members/yangyang.jpg" alt="杨洋">
+                    </div>
+                    <div class="team-info">
+                      <span class="team-name">杨洋</span>
+                      <p class="team-slogan">知行合一，探索无限可能</p>
+                    </div>
+                  </div>
+                  <a class="member-banner-cta" href="#worksGrid">查看作品</a>
                 </div>
-                <div class="team-info">
-                  <span class="team-name">张三</span>
-                  <p class="team-slogan">让每一次漫展，都值得被记住</p>
+                <div class="member-banner-gallery" aria-hidden="true">
+                  <span class="stack-card stack-card--back-left"><img src="images/templates/heat.jpg" alt=""></span>
+                  <span class="stack-card stack-card--back-right"><img src="images/templates/paint.jpg" alt=""></span>
+                  <span class="stack-card stack-card--front"><img src="images/members/yangyang.jpg" alt=""></span>
                 </div>
               </article>
             </div>
             <div class="kingkong-slide kingkong-slide--member">
               <article class="member-card">
-                <div class="team-avatar wf-photo">
-                  <img src="https://picsum.photos/seed/member2/160/160" alt="李四">
+                <div class="member-banner-info">
+                  <div class="member-banner-identity">
+                    <div class="team-avatar">
+                      <img src="images/members/huangkeying.jpg" alt="黄可滢">
+                    </div>
+                    <div class="team-info">
+                      <span class="team-name">黄可滢</span>
+                      <p class="team-slogan">允许一切发生</p>
+                    </div>
+                  </div>
+                  <a class="member-banner-cta" href="#worksGrid">查看作品</a>
                 </div>
-                <div class="team-info">
-                  <span class="team-name">李四</span>
-                  <p class="team-slogan">零设计门槛，人人皆是创作者</p>
-                </div>
-              </article>
-            </div>
-            <div class="kingkong-slide kingkong-slide--member">
-              <article class="member-card">
-                <div class="team-avatar wf-photo">
-                  <img src="https://picsum.photos/seed/member3/160/160" alt="王五">
-                </div>
-                <div class="team-info">
-                  <span class="team-name">王五</span>
-                  <p class="team-slogan">用 AI 把现场氛围变成可分享物料</p>
-                </div>
-              </article>
-            </div>
-            <div class="kingkong-slide kingkong-slide--member">
-              <article class="member-card">
-                <div class="team-avatar wf-photo">
-                  <img src="https://picsum.photos/seed/member4/160/160" alt="赵六">
-                </div>
-                <div class="team-info">
-                  <span class="team-name">赵六</span>
-                  <p class="team-slogan">物料即记忆，分享即传播</p>
+                <div class="member-banner-gallery" aria-hidden="true">
+                  <span class="stack-card stack-card--back-left"><img src="images/templates/festival.jpg" alt=""></span>
+                  <span class="stack-card stack-card--back-right"><img src="images/materials/postcard.jpg" alt=""></span>
+                  <span class="stack-card stack-card--front"><img src="images/members/huangkeying.jpg" alt=""></span>
                 </div>
               </article>
             </div>
             <div class="kingkong-slide kingkong-slide--member">
               <article class="member-card">
-                <div class="team-avatar wf-photo">
-                  <img src="https://picsum.photos/seed/member5/160/160" alt="小陈">
+                <div class="member-banner-info">
+                  <div class="member-banner-identity">
+                    <div class="team-avatar team-avatar--selfie">
+                      <img src="images/members/yangyining.jpg" alt="杨伊苧">
+                    </div>
+                    <div class="team-info">
+                      <span class="team-name">杨伊苧</span>
+                      <p class="team-slogan">煎和熬都是变美味的方法</p>
+                    </div>
+                  </div>
+                  <a class="member-banner-cta" href="#worksGrid">查看作品</a>
                 </div>
-                <div class="team-info">
-                  <span class="team-name">小陈</span>
-                  <p class="team-slogan">黑客松现场，ideas go live</p>
+                <div class="member-banner-gallery" aria-hidden="true">
+                  <span class="stack-card stack-card--back-left"><img src="images/materials/comicbook.jpg" alt=""></span>
+                  <span class="stack-card stack-card--back-right"><img src="images/templates/heat.jpg" alt=""></span>
+                  <span class="stack-card stack-card--front stack-card--selfie"><img src="images/members/yangyining.jpg" alt=""></span>
+                </div>
+              </article>
+            </div>
+            <div class="kingkong-slide kingkong-slide--member">
+              <article class="member-card">
+                <div class="member-banner-info">
+                  <div class="member-banner-identity">
+                    <div class="team-avatar">
+                      <img src="https://picsum.photos/seed/member4/160/160" alt="靳扬帆">
+                    </div>
+                    <div class="team-info">
+                      <span class="team-name">靳扬帆</span>
+                      <p class="team-slogan">物料即记忆，分享即传播</p>
+                    </div>
+                  </div>
+                  <a class="member-banner-cta" href="#worksGrid">查看作品</a>
+                </div>
+                <div class="member-banner-gallery" aria-hidden="true">
+                  <span class="stack-card stack-card--back-left"><img src="images/materials/sticker.jpg" alt=""></span>
+                  <span class="stack-card stack-card--back-right"><img src="images/materials/receipt.jpg" alt=""></span>
+                  <span class="stack-card stack-card--front"><img src="images/templates/paint.jpg" alt=""></span>
+                </div>
+              </article>
+            </div>
+            <div class="kingkong-slide kingkong-slide--member">
+              <article class="member-card">
+                <div class="member-banner-info">
+                  <div class="member-banner-identity">
+                    <div class="team-avatar">
+                      <img src="https://picsum.photos/seed/member5/160/160" alt="胡连胜">
+                    </div>
+                    <div class="team-info">
+                      <span class="team-name">胡连胜</span>
+                      <p class="team-slogan">黑客松现场，ideas go live</p>
+                    </div>
+                  </div>
+                  <a class="member-banner-cta" href="#worksGrid">查看作品</a>
+                </div>
+                <div class="member-banner-gallery" aria-hidden="true">
+                  <span class="stack-card stack-card--back-left"><img src="images/templates/festival.jpg" alt=""></span>
+                  <span class="stack-card stack-card--back-right"><img src="images/materials/comicbook.jpg" alt=""></span>
+                  <span class="stack-card stack-card--front"><img src="images/materials/postcard.jpg" alt=""></span>
                 </div>
               </article>
             </div>
@@ -101,11 +154,11 @@
           <!-- 指示条叠在卡片/图片内侧，不再占下方额外空间 -->
           <div class="kingkong-dots">
             <button type="button" class="kingkong-dot active" aria-label="庆祝黑客松"></button>
-            <button type="button" class="kingkong-dot" aria-label="张三"></button>
-            <button type="button" class="kingkong-dot" aria-label="李四"></button>
-            <button type="button" class="kingkong-dot" aria-label="王五"></button>
-            <button type="button" class="kingkong-dot" aria-label="赵六"></button>
-            <button type="button" class="kingkong-dot" aria-label="小陈"></button>
+            <button type="button" class="kingkong-dot" aria-label="杨洋"></button>
+            <button type="button" class="kingkong-dot" aria-label="黄可滢"></button>
+            <button type="button" class="kingkong-dot" aria-label="杨伊苧"></button>
+            <button type="button" class="kingkong-dot" aria-label="靳扬帆"></button>
+            <button type="button" class="kingkong-dot" aria-label="胡连胜"></button>
           </div>
         </div>
       </div>
@@ -117,21 +170,30 @@
         选择模板开始创作 <span aria-hidden="true">✦</span>
       </h2>
       <div class="square-template-list">
-        <a class="square-template-item" href="upload.html?template=comic" aria-label="选择模板一">
-          <img src="https://picsum.photos/seed/mm-template-1/240/300" alt="模板一占位图" loading="lazy">
+        <a class="square-template-item" href="upload.html?template=heat" aria-label="选择热血黑客松模板">
+          <span class="choice-thumb">
+            <img src="images/templates/heat.jpg" alt="热血黑客松样例" width="480" height="480">
+          </span>
+          <span>热血黑客松</span>
         </a>
-        <a class="square-template-item" href="upload.html?template=map" aria-label="选择模板二">
-          <img src="https://picsum.photos/seed/mm-template-2/240/300" alt="模板二占位图" loading="lazy">
+        <a class="square-template-item" href="upload.html?template=paint" aria-label="选择彩绘模板">
+          <span class="choice-thumb">
+            <img src="images/templates/paint.jpg" alt="彩绘样例" width="480" height="480">
+          </span>
+          <span>彩绘</span>
         </a>
-        <a class="square-template-item" href="upload.html?template=album" aria-label="选择模板三">
-          <img src="https://picsum.photos/seed/mm-template-3/240/300" alt="模板三占位图" loading="lazy">
+        <a class="square-template-item" href="upload.html?template=festival" aria-label="选择音乐节氛围模板">
+          <span class="choice-thumb">
+            <img src="images/templates/festival.jpg" alt="音乐节氛围样例" width="480" height="480">
+          </span>
+          <span>音乐节氛围</span>
         </a>
       </div>
     </section>
 
-    <!-- 作品瀑布流：小红书双列 -->
+    <!-- 作品瀑布流：小红书双列；标题字体与上方「选择模板开始创作」保持一致 -->
     <p class="wf-section-label">组件 · 双列瀑布流（小红书风格）</p>
-    <h2 class="section-title">看看别人的快乐切片</h2>
+    <h2 class="square-template-title square-works-title">看看别人的快乐切片</h2>
     <div class="works-grid works-grid--xhs" id="worksGrid">
       <p class="works-empty">正在加载广场作品...</p>
     </div>
@@ -172,6 +234,6 @@
 
   <script src="js/upload-labels.js?v=20260906-2"></script>
   <script src="js/task-api.js?v=20260906-2"></script>
-  <script src="js/app.js?v=20260906-2"></script>
+  <script src="js/app.js?v=20260906-6"></script>
 </body>
 </html>
