@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +36,47 @@ from database import (
     recover_stuck_tasks,
 )
 from routers import task, upload, works
+
+logger = logging.getLogger("uvicorn.error")
+
+
+def _validation_error_message(errors: list[dict]) -> str:
+    """把 Pydantic 的第一条校验错误转换成用户能理解的中文提示。"""
+    if not errors:
+        return "请求参数格式错误"
+
+    error = errors[0]
+    location = tuple(error.get("loc", ()))
+    field = str(location[-1]) if location else ""
+    error_type = str(error.get("type", ""))
+
+    field_names = {
+        "file_ids": "上传图片",
+        "template": "创作模板",
+        "style": "视觉风格",
+        "material": "物料类型",
+        "story_text": "故事描述",
+        "work_title": "作品名称",
+        "x-session-id": "匿名会话标识",
+    }
+    field_name = field_names.get(field, field or "请求参数")
+
+    if error_type == "missing":
+        return f"{field_name}不能为空"
+    if error_type == "json_invalid":
+        return "请求内容不是有效的 JSON"
+    if error_type == "literal_error":
+        return f"{field_name}选项无效，请重新选择"
+    if field == "file_ids" and error_type in {"too_short", "list_too_short"}:
+        return "请至少上传一张图片"
+    if field == "file_ids" and error_type in {"too_long", "list_too_long"}:
+        return "最多只能上传 20 张图片"
+    if field == "work_title" and error_type in {"too_long", "string_too_long"}:
+        return "作品名称不能超过 30 个字符"
+    if field == "story_text" and error_type in {"too_long", "string_too_long"}:
+        return "故事描述不能超过 500 个字符"
+    return f"{field_name}格式错误"
+
 
 # MVP 阶段直接自动建表；正式生产环境应改用 Alembic 数据库迁移。
 Base.metadata.create_all(bind=engine)
@@ -76,10 +119,31 @@ async def http_exception_handler(_: Request, exc: HTTPException):
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(_: Request, exc: RequestValidationError):
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # 日志只记录字段位置和错误类型，不记录用户提交的原始内容。
+    errors = exc.errors()
+    safe_errors = [
+        {
+            "loc": list(error.get("loc", ())),
+            "type": error.get("type"),
+            "msg": error.get("msg"),
+        }
+        for error in errors
+    ]
+    logger.warning(
+        # 使用 ASCII 日志前缀，避免 Windows 控制台把中文日志显示成乱码。
+        "Request validation failed: %s %s errors=%s",
+        request.method,
+        request.url.path,
+        safe_errors,
+    )
     return JSONResponse(
         status_code=422,
-        content={"code": 422, "message": "请求参数格式错误", "data": exc.errors()},
+        content={
+            "code": 422,
+            "message": _validation_error_message(errors),
+            "data": errors,
+        },
     )
 
 

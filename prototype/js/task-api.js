@@ -24,6 +24,30 @@
     return `${API_BASE}${path}`;
   }
 
+  /** 把 422 校验明细转换成可直接展示给用户的字段提示 */
+  function validationMessage(body) {
+    const firstError = Array.isArray(body?.data) ? body.data[0] : null;
+    if (!firstError) return '';
+
+    // 新版后端已经返回中文原因，直接使用；下面的映射兼容尚未更新的后端。
+    if (body.message && body.message !== '请求参数格式错误') {
+      return body.message;
+    }
+
+    const location = Array.isArray(firstError.loc) ? firstError.loc : [];
+    const field = location[location.length - 1];
+    const fieldNames = {
+      file_ids: '上传图片',
+      template: '创作模板',
+      style: '视觉风格',
+      material: '物料类型',
+      story_text: '故事描述',
+      work_title: '作品名称',
+      'x-session-id': '匿名会话标识'
+    };
+    return `${fieldNames[field] || field || '请求参数'}格式错误`;
+  }
+
   async function request(path, options = {}) {
     let response;
     try {
@@ -40,7 +64,8 @@
     }
 
     if (!response.ok || body?.code !== 200) {
-      throw new Error(body?.message || `请求失败（HTTP ${response.status}）`);
+      const detail = response.status === 422 ? validationMessage(body) : '';
+      throw new Error(detail || body?.message || `请求失败（HTTP ${response.status}）`);
     }
     return body;
   }
