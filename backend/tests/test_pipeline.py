@@ -149,6 +149,8 @@ class PipelineIntegrationTest(unittest.TestCase):
                 self.assertEqual(status["status"], "succeeded")
                 self.assertEqual(status["selected_count"], 1)
                 self.assertEqual(status["selected_file_ids"], uploaded_ids)
+                square = client.get("/api/works").json()["data"]["items"]
+                self.assertTrue(any(item["title"] == "单图测试" for item in square))
         finally:
             for path in fake_generate.generated:
                 path.unlink(missing_ok=True)
@@ -313,18 +315,15 @@ class PipelineIntegrationTest(unittest.TestCase):
                         "nickname": "本人",
                     },
                 )
-                self.assertEqual(published.status_code, 200)
+                # 生成成功时已自动上广场，再次发布应被拒绝。
+                self.assertEqual(published.status_code, 400)
 
-                duplicate = client.post(
-                    "/api/works",
+                mine = client.get(
+                    "/api/works/mine",
                     headers={"X-Session-Id": session_id},
-                    json={
-                        "task_id": task_id,
-                        "material": ["keychain"],
-                        "nickname": "本人",
-                    },
-                )
-                self.assertEqual(duplicate.status_code, 400)
+                ).json()["data"]["items"]
+                self.assertEqual(len(mine), 1)
+                self.assertEqual(mine[0]["title"], "发布测试")
         finally:
             for path in fake_generate.generated:
                 path.unlink(missing_ok=True)

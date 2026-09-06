@@ -22,7 +22,7 @@ from config import (
     VL_MODEL,
 )
 from database import SessionLocal, get_db
-from models import ApiCallLog, FileRecord, ImageScore, Task, TaskEvent
+from models import ApiCallLog, FileRecord, ImageScore, Task, TaskEvent, Work
 from schemas import TaskStartRequest
 
 router = APIRouter(tags=["生成任务"])
@@ -39,6 +39,7 @@ USER_ERROR_MESSAGES = {
     "server_restarted": "服务刚重启，请重新提交这次创作",
     "internal_error": "任务处理失败，请稍后重试",
     "invalid_material": "请选择一种物料类型后再生成",
+    "sensitive_content": "这组照片触发了生图安全审核，请换几张更日常的人物照重试",
 }
 
 
@@ -166,6 +167,25 @@ def _save_successful_score(
     )
     db.add(row)
     return row
+
+
+def _auto_publish_work(db: Session, task: Task) -> None:
+    """生成成功后自动上广场，用户不必再停留上传页点发布。"""
+    if not task.result_url or db.query(Work).filter(Work.task_id == task.id).first():
+        return
+    db.add(
+        Work(
+            task_id=task.id,
+            session_id=task.session_id,
+            title=(task.work_title or "未命名作品")[:30],
+            cover_url=task.result_url,
+            result_urls=json.dumps([task.result_url]),
+            template=task.template,
+            style=task.style,
+            material=task.material,
+            nickname="匿名用户",
+        )
+    )
 
 
 def run_ai_task(task_id: str, file_ids: list[str]) -> None:
@@ -317,6 +337,7 @@ def run_ai_task(task_id: str, file_ids: list[str]) -> None:
                 message="海报生成完成",
             )
         )
+        _auto_publish_work(db, task)
         db.commit()
     except WorkflowError as exc:
         db.rollback()

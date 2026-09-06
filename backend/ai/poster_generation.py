@@ -84,9 +84,13 @@ def generate_poster(
             if response.status_code == 429 or response.status_code >= 500:
                 response.raise_for_status()
             if response.is_error:
+                detail = response.text[:300]
+                code = "http_error"
+                if "SensitiveContent" in detail or "PolicyViolation" in detail:
+                    code = "sensitive_content"
                 raise ProviderError(
-                    f"Seedream 请求失败：HTTP {response.status_code} {response.text[:300]}",
-                    code="http_error",
+                    f"Seedream 请求失败：HTTP {response.status_code} {detail}",
+                    code=code,
                     http_status=response.status_code,
                     retry_count=attempt,
                 )

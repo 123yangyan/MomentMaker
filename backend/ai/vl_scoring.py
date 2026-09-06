@@ -34,8 +34,8 @@ PROMPT = """你是图像生成参考图筛选专家。当前任务：把真实�
 - overall: 综合是否推荐用于生成图
 
 同时给出 recommend、80字内中文 reason 和 people_count。
-严格只输出一个 JSON 对象：
-{"face_clarity":0,"identity":0,"pose":0,"occlusion":0,"sharpness":0,"clutter":0,"overall":0,"recommend":false,"reason":"","people_count":0}
+严格只输出一个 JSON 对象，所有分数字段必须是 1 到 10 的整数，禁止写 0：
+{"face_clarity":8,"identity":7,"pose":7,"occlusion":8,"sharpness":8,"clutter":7,"overall":8,"recommend":true,"reason":"人物清晰可用","people_count":1}
 """
 
 
@@ -95,9 +95,8 @@ def _parse_score(content: str) -> dict[str, Any]:
         value = result.get(field)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError(f"评分字段 {field} 不是数字")
-        value = int(value)
-        if not 1 <= value <= 10:
-            raise ValueError(f"评分字段 {field} 超出 1-10")
+        # 模型偶尔照抄示例里的 0；夹到 1-10，避免整单任务因此失败。
+        value = max(1, min(10, int(value)))
         result[field] = value
 
     result["recommend"] = bool(result.get("recommend", False))
@@ -182,6 +181,10 @@ def score_image(
                 time.sleep(2**attempt)
                 continue
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
+            last_error = exc
+            if attempt < AI_MAX_RETRIES:
+                time.sleep(2**attempt)
+                continue
             elapsed_ms = round((time.perf_counter() - started) * 1000)
             raise ProviderError(
                 f"GLM 响应格式错误：{exc}",

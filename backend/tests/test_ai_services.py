@@ -53,6 +53,16 @@ class AiServiceContractTest(unittest.TestCase):
         )
         self.assertEqual(_parse_score(content)["overall"], 8)
 
+    def test_glm_zero_scores_are_clamped(self) -> None:
+        content = (
+            '{"face_clarity":0,"identity":0,"pose":0,"occlusion":0,'
+            '"sharpness":0,"clutter":0,"overall":0,"recommend":false,'
+            '"reason":"示例","people_count":0}'
+        )
+        score = _parse_score(content)
+        self.assertEqual(score["face_clarity"], 1)
+        self.assertEqual(score["overall"], 1)
+
     def test_glm_http_response_contract(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             image_path = Path(directory) / "input.jpg"

@@ -167,21 +167,17 @@ function initLightbox() {
     if (likeIcon) likeIcon.textContent = liked ? '♥' : '♡';
   };
 
-  worksGrid.addEventListener('click', (event) => {
-    const card = event.target.closest('.work-card');
-    if (!card) return;
-
-    const img = card.querySelector('.work-card-img img');
-    const name = card.querySelector('.work-card-name')?.textContent || '未命名作品';
-    const meta = card.querySelector('.work-card-meta')?.textContent || '';
-    const likeMatch = meta.match(/(\d+)/);
-    likeCount = likeMatch ? parseInt(likeMatch[1], 10) : 0;
+  const showWork = (work) => {
+    currentWorkId = work.work_id || null;
+    likeCount = work.likes || 0;
     liked = false;
-    currentWorkId = card.dataset.workId || null;
 
     if (mainImg) {
-      if (img?.src) {
-        mainImg.src = img.src;
+      const imageUrl = work.cover_url
+        ? window.MomentMakerApi.fileUrl(work.cover_url)
+        : '';
+      if (imageUrl) {
+        mainImg.src = imageUrl;
         mainImg.style.display = 'block';
       } else {
         mainImg.removeAttribute('src');
@@ -189,11 +185,34 @@ function initLightbox() {
       }
     }
 
-    if (titleEl) titleEl.textContent = name;
+    if (titleEl) titleEl.textContent = work.title || '未命名作品';
     updateLikeUI();
     lightbox.classList.add('active');
     document.body.style.overflow = 'hidden';
+  };
+
+  worksGrid.addEventListener('click', (event) => {
+    const card = event.target.closest('.work-card');
+    if (!card) return;
+
+    const img = card.querySelector('.work-card-img img');
+    const meta = card.querySelector('.work-card-meta')?.textContent || '';
+    const likeMatch = meta.match(/(\d+)/);
+    showWork({
+      work_id: card.dataset.workId,
+      title: card.querySelector('.work-card-name')?.textContent,
+      cover_url: img?.src,
+      likes: likeMatch ? parseInt(likeMatch[1], 10) : 0
+    });
   });
+
+  // “我的”页面会带 work 参数跳回广场，进入后直接打开对应成品。
+  const sharedWorkId = new URLSearchParams(window.location.search).get('work');
+  if (sharedWorkId && window.MomentMakerApi) {
+    window.MomentMakerApi.fetchWorkDetail(sharedWorkId)
+      .then(showWork)
+      .catch((error) => showToast(error.message || '作品加载失败'));
+  }
 
   likeBtn?.addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -345,7 +364,9 @@ function initUploadPage() {
     let remaining = COUNTDOWN_SECONDS;
     const refreshCountdown = () => {
       if (successCountdown) successCountdown.textContent = String(remaining);
-      if (successSub) successSub.textContent = `${remaining} 秒后自动返回广场`;
+      if (successSub) {
+        successSub.textContent = `海报正在后台生成，${remaining} 秒后返回广场查看`;
+      }
     };
     refreshCountdown();
 
@@ -633,17 +654,21 @@ async function initProfilePage() {
       if (statPublished) statPublished.textContent = String(works.length);
       if (statLikes) statLikes.textContent = String(totalLikes);
 
-      const succeededTasks = tasks.filter(
+      const unpublished = tasks.filter(
         (task) => task.status === 'succeeded' && !works.some((work) => work.task_id === task.task_id)
       );
+      const processing = tasks.filter(
+        (task) => !['succeeded', 'failed'].includes(task.status)
+      );
+      const failed = tasks.filter((task) => task.status === 'failed');
 
-      if (!works.length && !succeededTasks.length) {
+      if (!works.length && !unpublished.length && !processing.length && !failed.length) {
         panelPublished.innerHTML = '<p class="works-empty">还没有作品，去上传页开始创作吧</p>';
         return;
       }
 
       const workItems = works.map((work) => `
-        <div class="profile-work-item">
+        <a class="profile-work-item" href="index.html?work=${encodeURIComponent(work.work_id)}">
           <div class="profile-work-thumb">
             <img src="${window.MomentMakerApi.fileUrl(work.cover_url)}" alt="${work.title}">
           </div>
@@ -652,23 +677,43 @@ async function initProfilePage() {
             <div class="profile-work-meta">${TEMPLATE_NAMES[work.template] || work.template} · 赞 ${work.likes || 0}</div>
           </div>
           <span class="profile-chevron">›</span>
+        </a>
+      `).join('');
+
+      const processingItems = processing.map((task) => `
+        <div class="profile-work-item">
+          <div class="profile-work-thumb">生成中</div>
+          <div class="profile-work-info">
+            <div class="profile-work-title">${task.work_title || '未命名作品'}</div>
+            <div class="profile-work-meta">${window.MomentMakerApi.STATUS_LABELS[task.status] || '正在生成'} · ${task.progress || 0}%</div>
+          </div>
         </div>
       `).join('');
 
-      const taskItems = succeededTasks.map((task) => `
-        <div class="profile-work-item">
+      const unpublishedItems = unpublished.map((task) => `
+        <a class="profile-work-item" href="${window.MomentMakerApi.fileUrl(task.result_url)}" target="_blank" rel="noopener">
           <div class="profile-work-thumb">
             <img src="${window.MomentMakerApi.fileUrl(task.result_url)}" alt="${task.work_title}">
           </div>
           <div class="profile-work-info">
             <div class="profile-work-title">${task.work_title}</div>
-            <div class="profile-work-meta">已生成 · 待发布</div>
+            <div class="profile-work-meta">已生成，正在补发到广场</div>
           </div>
-          <a href="upload.html" class="btn btn-sm">查看</a>
+          <span class="profile-chevron">›</span>
+        </a>
+      `).join('');
+
+      const failedItems = failed.map((task) => `
+        <div class="profile-work-item">
+          <div class="profile-work-thumb">失败</div>
+          <div class="profile-work-info">
+            <div class="profile-work-title">${task.work_title || '未命名作品'}</div>
+            <div class="profile-work-meta">${task.error_message || '生成失败，请换图重试'}</div>
+          </div>
         </div>
       `).join('');
 
-      panelPublished.innerHTML = workItems + taskItems;
+      panelPublished.innerHTML = processingItems + workItems + unpublishedItems + failedItems;
     } catch (error) {
       panelPublished.innerHTML = `<p class="works-empty">${error.message || '加载失败'}</p>`;
     }

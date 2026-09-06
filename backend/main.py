@@ -4,14 +4,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from config import CORS_ORIGINS, FILES_DIR, MOCK_DIR
-from database import Base, engine, migrate_database, recover_stuck_tasks
+from config import BASE_DIR, CORS_ORIGINS, FILES_DIR, MOCK_DIR
+
+# 原型页目录：与 backend 同级，便于单端口同时提供页面和 API。
+PROTOTYPE_DIR = BASE_DIR.parent / "prototype"
+from database import (
+    Base,
+    engine,
+    migrate_database,
+    publish_completed_tasks,
+    recover_stuck_tasks,
+)
 from routers import task, upload, works
 
 # MVP 阶段直接自动建表；正式生产环境应改用 Alembic 数据库迁移。
 Base.metadata.create_all(bind=engine)
 migrate_database()
 recover_stuck_tasks()
+# 兼容旧数据：过去已经生成成功但仍显示“待发布”的作品自动补到广场。
+publish_completed_tasks()
 
 app = FastAPI(
     title="MomentMaker API",
@@ -54,12 +65,16 @@ async def validation_exception_handler(_: Request, exc: RequestValidationError):
     )
 
 
-@app.get("/")
-def root():
-    return {"code": 200, "message": "MomentMaker API is running!", "data": None}
-
-
 @app.get("/health")
 def health():
     """部署平台和联调人员可用此接口判断后端是否存活。"""
     return {"code": 200, "message": "ok", "data": {"status": "healthy"}}
+
+
+# 最后挂载原型页；html=True 使 / 自动返回 index.html，且必须放在 API 路由之后。
+if PROTOTYPE_DIR.is_dir():
+    app.mount(
+        "/",
+        StaticFiles(directory=str(PROTOTYPE_DIR), html=True),
+        name="prototype",
+    )

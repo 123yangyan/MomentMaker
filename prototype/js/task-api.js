@@ -5,7 +5,12 @@
 (function exposeApi(global) {
   'use strict';
 
-  const API_BASE = 'http://127.0.0.1:8000';
+  // 本机双端口联调（5173 静态页 + 8000 API）；公网/单端口访问时与当前页面同源。
+  const API_BASE =
+    (global.location.hostname === '127.0.0.1' || global.location.hostname === 'localhost') &&
+    global.location.port === '5173'
+      ? 'http://127.0.0.1:8000'
+      : global.location.origin;
   const POLL_INTERVAL = 2000;
 
   function getSessionId() {
@@ -191,6 +196,7 @@
     missing_api_key: '生成服务暂时不可用，请稍后再试',
     insufficient_scores: '没有成功识别的人物照片，请换几张更清晰的正面照重试',
     http_error: '模型服务暂时繁忙，请稍后重试',
+    sensitive_content: '这组照片触发了生图安全审核，请换几张更日常的人物照重试',
     request_failed: '模型服务暂时繁忙，请稍后重试',
     empty_result: '海报生成没有返回图片，请重新提交',
     invalid_response: '模型返回异常，请重新提交',

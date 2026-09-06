@@ -120,6 +120,50 @@ def recover_stuck_tasks() -> int:
     return recovered
 
 
+def publish_completed_tasks() -> int:
+    """把升级前已生成但未发布的任务补发到广场。"""
+    import json
+
+    from models import Task, Work
+
+    db = SessionLocal()
+    published = 0
+    try:
+        existing_task_ids = {
+            task_id
+            for (task_id,) in db.query(Work.task_id)
+            .filter(Work.task_id.is_not(None))
+            .all()
+        }
+        tasks = (
+            db.query(Task)
+            .filter(Task.status == "succeeded", Task.result_url.is_not(None))
+            .all()
+        )
+        for task in tasks:
+            if task.id in existing_task_ids:
+                continue
+            db.add(
+                Work(
+                    task_id=task.id,
+                    session_id=task.session_id,
+                    title=(task.work_title or "未命名作品")[:30],
+                    cover_url=task.result_url,
+                    result_urls=json.dumps([task.result_url]),
+                    template=task.template,
+                    style=task.style,
+                    material=task.material,
+                    nickname="匿名用户",
+                )
+            )
+            published += 1
+        if published:
+            db.commit()
+    finally:
+        db.close()
+    return published
+
+
 def get_db():
     """为每次请求提供独立数据库会话，并在结束后关闭。"""
     db = SessionLocal()
